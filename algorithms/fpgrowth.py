@@ -19,7 +19,7 @@ class FPGrowthAssociation:
         self.frequent_itemsets = None
         self.rules = None
 
-    def train_and_save(self, output_rules_path, min_support=0.02, min_confidence=0.5, min_lift=1.01):
+    def train_and_save(self, output_rules_path, min_support=0.02, min_confidence=0.5, min_lift=2.0):
         """
         Huấn luyện và lưu luật dưới 3 định dạng: Parquet (Spark), CSV (Excel), JSON (Web).
         """
@@ -61,10 +61,29 @@ class FPGrowthAssociation:
         return self.rules
 
     def display_top_itemsets(self, top_n=10):
-        if self.frequent_itemsets is None: return
+        if self.frequent_itemsets is None: 
+            print("Chưa có tập mục phổ biến. Hãy chạy build_fp_tree_and_mine().")
+            return
+        
+        # 1. Tính tổng số giao dịch từ DataFrame gốc để tính Support
+        total_count = self.df.count()
+            
+        # 2. Xử lý dữ liệu: lấy Top N, tính support, và tạo chuỗi itemsets
         top_spark = self.frequent_itemsets.orderBy(F.col("freq").desc()).limit(top_n)
-        top_pdf = top_spark.withColumn("itemsets", F.array_join(F.col("items"), ", ")).toPandas()
+        
+        display_spark = top_spark \
+            .withColumn("support", F.col("freq") / total_count) \
+            .withColumn("itemsets", F.array_join(F.col("items"), ", ")) \
+            .select("itemsets", "freq", "support") # <--- CHỈ CHỌN 3 CỘT NÀY ĐỂ IN
+            
+        # 3. Chuyển sang Pandas để in bảng đẹp
+        top_pdf = display_spark.toPandas()
+        
+        # Cấu hình định dạng số thực cho cột support
+        pd.options.display.float_format = '{:.4f}'.format
+        
         print(f"\n TOP {top_n} TẬP MỤC PHỔ BIẾN ".center(85, "="))
+        # index=False để bỏ cột số thứ tự của Pandas
         print(top_pdf.to_string(index=False, justify='center'))
 
     def display_top_rules(self, top_n=10):

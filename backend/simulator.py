@@ -5,6 +5,7 @@ import numpy as np
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable
 
+
 # 1. Hàm khởi tạo kết nối có khả năng chờ Kafka
 def get_producer():
     while True:
@@ -49,7 +50,7 @@ def run_simulator():
         # Gửi dữ liệu vào Kafka
         try:
             producer.send('live_transactions', value=record)
-            print(f"[Sent] TXN: {record['TransactionNo']} | Items: {len(record['items'])}")
+            print(f"[Sent] TXN: {record['TransactionNo']} | CN: {record['CustomerNo']} |Items: {len(record['items'])}")
         except Exception as e:
             print(f"--- ⚠️ Lỗi khi gửi dữ liệu: {e} ---")
         

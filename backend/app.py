@@ -60,29 +60,72 @@ def create_consumer():
 
 @st.cache_resource
 def create_manual_producer():
-    return KafkaProducer(
-        bootstrap_servers=['kafka:9092'],
-        value_serializer=lambda v: json.dumps(v).encode('utf-8')
-    )
+    while True:
+        try:
+            # Cố gắng kết nối với Kafka
+            producer = KafkaProducer(
+                bootstrap_servers=['kafka:9092'],
+                value_serializer=lambda v: json.dumps(v).encode('utf-8')
+            )
+            return producer
+        except Exception:
+            # Nếu Kafka chưa lên, App sẽ không sập mà chỉ ngủ 5 giây rồi thử lại
+            time.sleep(5)
 
 @st.cache_data
 def load_all_products():
-    """Đọc trực tiếp từ file CSV/Parquet để lấy ĐẦY ĐỦ danh sách sản phẩm"""
+    """Chỉ đọc các sản phẩm đóng vai trò là 'antecedent' để đảm bảo luôn có gợi ý"""
+    rules_parquet_path = '/app/data/results/association_rules.parquet'
+    rules_csv_path =     '/app/association.csv' 
+
+    # Ưu tiên đọc từ file Parquet vì Spark lưu antecedent dưới dạng Array
     try:
-        df = pd.read_parquet('/app/asso_products.parquet')
-        all_items = df['items'].explode().dropna().unique()
-        return sorted(list(all_items))
+        df_rules = pd.read_parquet(rules_parquet_path)
+        # Explode cột antecedent (mảng) thành từng dòng và lấy giá trị duy nhất
+        antecedents = df_rules['antecedent'].explode().dropna().unique()
+        return sorted(list(antecedents))
+    
     except Exception as e1:
+        # Fallback: Đọc từ file CSV nếu Parquet lỗi
         try:
-            df_rules = pd.read_csv('/app/data/results/association_rules.csv/part-00000-316579a1-9970-4519-b76f-40b99dd7279f-c000.csv')
+            df_rules = pd.read_csv(rules_csv_path)
             products = set()
+            # Chỉ lấy từ cột 'antecedent', bỏ qua 'consequent'
             for items in df_rules['antecedent'].dropna():
-                for item in items.split(','): products.add(item.strip().replace('"', ''))
-            for items in df_rules['consequent'].dropna():
-                for item in items.split(','): products.add(item.strip().replace('"', ''))
+                # Xử lý chuỗi "item1, item2" nếu CSV lưu dạng string
+                for item in items.split(','):
+                    products.add(item.strip().replace('"', ''))
             return sorted(list(products))
+        
         except Exception as e2:
-            return ["Lỗi đọc file - Vui lòng kiểm tra đường dẫn"]
+            # Nếu cả 2 đều lỗi, có thể do chưa chạy Notebook huấn luyện
+            return ["Chưa có luật - Hãy chạy huấn luyện trước"]
+        
+@st.cache_data
+def load_super_unique_products():
+    """Chỉ lấy các sản phẩm antecedent có trong bản Super mà không có trong bản thường"""
+    # 1. Lấy danh sách sản phẩm từ model bình thường (đã có hàm của ông)
+    standard_products = set(load_all_products())
+    
+    # 2. Đọc sản phẩm từ file associationsuper.csv
+    try:
+        # Đường dẫn ông cần kiểm tra lại cho đúng với container (giả sử nằm trong results)
+        super_path = '/app/associationsuper.csv'
+        df_super = pd.read_csv(super_path)
+        
+        super_ants = set()
+        for items in df_super['antecedent'].dropna():
+            # Xử lý chuỗi "item1, item2" từ CSV của Spark
+            for item in items.split(','):
+                super_ants.add(item.strip().replace('"', ''))
+        
+        # 3. Phép trừ tập hợp: Chỉ giữ lại những mã hàng mới mà model thường không tìm thấy
+        unique_to_super = super_ants - standard_products
+        return sorted(list(unique_to_super))
+    except Exception as e:
+        st.error(f"Lỗi đọc file Super: {e}")
+        return []
+        
 
 @st.cache_data
 def load_clustering_data():
@@ -119,31 +162,109 @@ with tab1:
 
 # --- TAB 2: NHẬP GIỎ HÀNG THỦ CÔNG (ĐỘC LẬP & LƯU LỊCH SỬ) ---
 with tab2:
-    st.subheader("Trải nghiệm Gợi ý Thủ Công")
+    st.subheader("🛍️ Trải nghiệm Gợi ý Thủ Công & So sánh Mô hình")
     
-    col_input, col_btn = st.columns([4, 1])
-    with col_input:
+    # =========================================================
+    # PHẦN 1: MÔ HÌNH TIÊU CHUẨN (STREAMING QUA KAFKA)
+    # =========================================================
+    st.markdown("### 📦 1. Mô hình Tiêu chuẩn (1 Ngưỡng)")
+    st.info("Sử dụng toàn bộ dữ liệu. Khi bấm phân tích, giỏ hàng sẽ được gửi vào Kafka để Spark Streaming xử lý.")
+    
+    col_input_std, col_btn_std = st.columns([4, 1])
+    with col_input_std:
         selected_items = st.multiselect(
-            "Nhặt sản phẩm vào giỏ hàng:", 
-            options=available_products, 
-            key="manual_input" # Giữ trạng thái input
+            "Nhặt sản phẩm vào giỏ hàng (Tiêu chuẩn):", 
+            options=available_products,  # Biến này ông đã khai báo ở trên
+            key="manual_input" # Giữ key cũ để không hỏng logic
         )
-    with col_btn:
+    with col_btn_std:
         st.write("") 
         st.write("")
-        if st.button("🛒 Phân tích", use_container_width=True):
+        if st.button("🛒 Phân tích (Tiêu chuẩn)", use_container_width=True):
             if selected_items and "Lỗi đọc file" not in selected_items[0]:
                 fake_txn = f"MANUAL_{uuid.uuid4().hex[:4].upper()}"
                 record = {"TransactionNo": fake_txn, "items": selected_items}
+                # Gửi qua Kafka y như cũ
                 manual_producer.send('live_transactions', value=record)
-                st.toast(f"Đã gửi giỏ hàng: {fake_txn}")
+                st.toast(f"Đã gửi giỏ hàng Tiêu chuẩn: {fake_txn}")
             else:
                 st.warning("Vui lòng chọn sản phẩm!")
     
-    st.divider()
-    st.write("#### 📜 Kết quả phân tích của bạn:")
-    # Placeholder này sẽ được vòng lặp bên dưới cập nhật riêng
+    st.write("#### 📜 Kết quả phân tích (Tiêu chuẩn):")
+    # Placeholder này giữ nguyên để vòng lặp while True phía dưới cập nhật
     manual_results_placeholder = st.empty()
+
+    st.divider() # Đường kẻ ngang chia cách
+
+    # =========================================================
+    # PHẦN 2: MÔ HÌNH SUPER (CHỈ HÀNG KHÁC BIỆT - XỬ LÝ TRỰC TIẾP)
+    # =========================================================
+    st.markdown("### 🚀 2. Mô hình Super (Đa Ngưỡng - Low Support)")
+    st.success("Chỉ hiển thị các sản phẩm đặc trưng (hàng hiếm/ít mua) mà mô hình Tiêu chuẩn đã bỏ sót.")
+    
+    # Gọi hàm lấy danh sách sản phẩm khác biệt (hàm tui viết ở câu trước)
+    unique_products = load_super_unique_products()
+    
+    if not unique_products:
+        st.warning("Không tìm thấy sản phẩm khác biệt nào. Hãy chắc chắn đã chạy mô hình Super.")
+    else:
+        col_input_super, col_btn_super = st.columns([4, 1])
+        with col_input_super:
+            selected_super = st.multiselect(
+                "Nhặt sản phẩm vào giỏ hàng (Chỉ có ở Super):", 
+                options=unique_products, 
+                key="super_input"
+            )
+        with col_btn_super:
+            st.write("") 
+            st.write("")
+            if st.button("🌟 Phân tích (Super)", use_container_width=True):
+                if selected_super:
+                    # Đọc trực tiếp file luật của Super để xử lý tức thì
+                    try:
+                        df_super = pd.read_csv('/app/associationsuper.csv')
+                        
+                        # Hàm kiểm tra xem antecedent có nằm trong giỏ hàng không
+                        def is_subset(ant_str):
+                            if pd.isna(ant_str): return False
+                            ant_list = [item.strip().replace('"', '') for item in str(ant_str).split(',')]
+                            return set(ant_list).issubset(set(selected_super))
+                        
+                        # Lọc các luật phù hợp
+                        matched = df_super[df_super['antecedent'].apply(is_subset)]
+                        
+                        if not matched.empty:
+                            # Sắp xếp và lưu vào session_state để hiện ra màn hình
+                            matched = matched.sort_values(by=['lift', 'confidence'], ascending=[False, False])
+                            st.session_state.super_results = matched.head(5) # Lấy top 5
+                            st.toast("Đã tìm thấy gợi ý từ mô hình Super!")
+                        else:
+                            st.session_state.super_results = "Empty"
+                            st.toast("Không có luật nào khớp với giỏ hàng này.")
+                    except Exception as e:
+                        st.error(f"Lỗi đọc dữ liệu Super: {e}")
+                else:
+                    st.warning("Vui lòng chọn sản phẩm!")
+
+        st.write("#### 📜 Kết quả phân tích (Super):")
+        super_results_placeholder = st.empty()
+        
+        # Hiển thị kết quả Super từ session_state (hiện ra ngay lập tức không cần đợi Kafka)
+        if 'super_results' in st.session_state:
+            if isinstance(st.session_state.super_results, pd.DataFrame):
+                display_df = st.session_state.super_results[['antecedent', 'consequent', 'confidence', 'lift']].copy()
+                display_df.columns = ['Giỏ hàng (Đã chọn)', 'Gợi ý Mua kèm', 'Độ tự tin (Conf)', 'Độ tương quan (Lift)']
+                
+                # Làm đẹp số liệu
+                display_df['Độ tự tin (Conf)'] = display_df['Độ tự tin (Conf)'].apply(lambda x: f"{x:.4f}")
+                display_df['Độ tương quan (Lift)'] = display_df['Độ tương quan (Lift)'].apply(lambda x: f"{x:.4f}")
+                
+                super_results_placeholder.dataframe(display_df, hide_index=True, use_container_width=True)
+            elif st.session_state.super_results == "Empty":
+                super_results_placeholder.info("Mô hình Super không tìm thấy gợi ý mua kèm nào cho giỏ hàng này.")
+
+
+
 
 # --- TAB 3: CLUSTERING (KẾT HỢP DATA TĨNH VÀ STREAMING NHÃN GÁN) ---
 with tab3:
@@ -263,7 +384,9 @@ while True:
         
         # 1. Vẽ DataFrame
         def highlight_vip(val):
-            color = '#FFD700' if 'VIP' in str(val) else '#90EE90' if 'Trung Thành' in str(val) else '#D3D3D3'
+            # Lấy màu khớp chính xác với nhãn từ COLOR_MAP ở đầu file
+            # Nếu vì lý do gì đó bị lỗi không có nhãn, để mặc định là màu xám (#D3D3D3)
+            color = COLOR_MAP.get(val, '#D3D3D3')
             return f'background-color: {color}; color: black; font-weight: bold'
             
         styled_df = df_rfm.style.applymap(highlight_vip, subset=['Phân Loại K-Means'])
@@ -285,6 +408,6 @@ while True:
             color='Nhãn',
             color_discrete_map=COLOR_MAP
         )
-        pie_chart_placeholder.plotly_chart(fig, use_container_width=True, key="rfm_cumulative_pie")
+        pie_chart_placeholder.plotly_chart(fig, width="stretch", key=str(uuid.uuid4()))
     
-    time.sleep(0.5)
+    time.sleep(0.2)
