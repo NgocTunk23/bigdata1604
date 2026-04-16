@@ -90,6 +90,8 @@ class KMeansSegmentation:
         # Loại bỏ các cột vector tạm thời trước khi lưu
         cols_to_drop = ["features", "scaled_features", "total_spend_log", "avg_order_value_log", "total_orders_log"]
         df_final = df_result.drop(*cols_to_drop)
+
+        print(df_final.show(20, truncate=False))
         
         print(f"--- Đang lưu kết quả phân cụm ra: {output_path} ---")
         df_final.write.mode("overwrite").parquet(output_path)

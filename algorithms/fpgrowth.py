@@ -4,7 +4,7 @@ from pyspark.sql import functions as F
 from pyspark.ml.fpm import FPGrowth as SparkFPGrowth
 
 class FPGrowthAssociation:
-    def __init__(self, spark, input_path, items_col="items"):
+    def __init__(self, spark, input_path, items_col="items", customer_col="CustomerNo"):
         self.spark = spark
         # Tạo thư mục checkpoint
         if not os.path.exists("../checkpoint_dir"):
@@ -14,6 +14,7 @@ class FPGrowthAssociation:
         print(f"--- Đang đọc dữ liệu từ {input_path}... ---")
         self.df = self.spark.read.parquet(input_path)
         self.items_col = items_col
+        self.customer_col = customer_col # THÊM DÒNG NÀY
         self.model = None
         self.frequent_itemsets = None
         self.rules = None

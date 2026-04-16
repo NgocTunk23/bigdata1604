@@ -7,7 +7,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 # Thiết lập biến môi trường
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-spec
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH=$PATH:$JAVA_HOME/bin
 
 # Cài đặt các thư viện Python

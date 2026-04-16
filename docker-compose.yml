@@ -26,7 +26,7 @@ services:
     volumes:
       - .:/app
     # Spark sẽ gọi Kafka qua tên service 'kafka'
-    command: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 /app/spark_engine.py
+    command: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 /app/backend/spark_engine.py
     depends_on:
       - kafka
 
@@ -36,6 +36,18 @@ services:
       - "8501:8501"
     volumes:
       - .:/app
-    command: streamlit run /app/app.py
+    command: streamlit run /app/backend/app.py
+    depends_on:
+      - kafka
+  
+  data-simulator:
+    build: .
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+    # Lệnh chạy file simulator
+    command: python /app/backend/simulator.py
+    # Bắt buộc phải đợi Kafka sẵn sàng mới được bắn dữ liệu
     depends_on:
       - kafka
