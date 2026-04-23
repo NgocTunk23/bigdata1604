@@ -11,6 +11,7 @@ services:
     image: confluentinc/cp-kafka:7.4.0
     ports:
       - "9092:9092"
+      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -18,20 +19,51 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     depends_on:
       - zookeeper
+
+  kafka-setup:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka-setup
+    depends_on:
+      - kafka
+    command: >
+      bash -c "
+      echo 'Chờ Kafka sẵn sàng...'
+      cub kafka-ready -b kafka:9092 1 60 && \
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --partitions 1 --replication-factor 1 --topic live_transactions && \
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --partitions 1 --replication-factor 1 --topic top_products_stream && \
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:9092 --partitions 1 --replication-factor 1 --topic customer_clustering && \
+      echo '✅ Khởi tạo Topic thành công!'"
+      
+  data-simulator:
+    build: .
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+    command: python /app/backend/simulator.py
+    depends_on:
+      - kafka
 
   spark-engine:
     build: .
     volumes:
       - .:/app
     # Spark sẽ gọi Kafka qua tên service 'kafka'
-    command: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 /app/backend/spark_engine.py
+    command: >
+      bash -c "sleep 40 && 
+      spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 /app/backend/spark_engine.py"
+    restart: on-failure
     depends_on:
       - kafka
+      - kafka-setup
 
   streamlit-web:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8501:8501"
     volumes:
@@ -40,14 +72,29 @@ services:
     depends_on:
       - kafka
   
-  data-simulator:
-    build: .
+  backend-api:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
     volumes:
       - .:/app
     environment:
-      - PYTHONPATH=/app
-    # Lệnh chạy file simulator
-    command: python /app/backend/simulator.py
-    # Bắt buộc phải đợi Kafka sẵn sàng mới được bắn dữ liệu
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    command: >
+      bash -c "sleep 15 && uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
+    restart: always
     depends_on:
       - kafka
+
+  frontend-web:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend-api

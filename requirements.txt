@@ -3,3 +3,8 @@ kafka-python
 streamlit
 pandas
 plotly
+fastapi 
+uvicorn
+aiokafka
+python-multipart
+websockets
