@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* Màu chung */
+  --background: #f8fafc;
+  --foreground: #1f2228;
+  --card: #ffffff;
+  --card-foreground: #1f2228;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #4a6072;
+
+  /* Sidebar colors - Áp dụng chính cho Sidebar */
+  --sidebar: #1a1b1f;                    /* Nền sidebar tối */
+  --sidebar-foreground: #e8edf3;         /* Chữ chính trên sidebar */
+  --sidebar-primary: #4a6072;            /* Màu active / selected */
+  --sidebar-primary-foreground: #e8edf3; /* Chữ trên item active */
+  --sidebar-accent: #353a44;             /* Màu hover */
+  --sidebar-accent-foreground: #e8edf3;
+  --sidebar-border: #4a6072;             /* Đường viền */
+  --sidebar-ring: #7b9bb8;
+}
+
+.dark {
+  --background: #1f2228;
+  --foreground: #e8edf3;
+  --card: #353a44;
+  --card-foreground: #e8edf3;
+  --border: #4a6072;
+  --input: #4a6072;
+  --ring: #7b9bb8;
+
+  --sidebar: #1f2228;
+  --sidebar-foreground: #e8edf3;
+  --sidebar-primary: #4a6072;
+  --sidebar-primary-foreground: #e8edf3;
+  --sidebar-accent: #353a44;
+  --sidebar-accent-foreground: #e8edf3;
+  --sidebar-border: #4a6072;
+  --sidebar-ring: #7b9bb8;
+}
+
+/* Theme cho Tailwind v4 */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
