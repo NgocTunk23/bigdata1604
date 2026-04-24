@@ -1,6 +1,6 @@
 import os
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, StringType, ArrayType
+from pyspark.sql.types import StructType, StructField, StringType, ArrayType, DoubleType
 from pyspark.sql.functions import col, from_json, to_json, struct, explode, window, count
 from pyspark.ml.fpm import FPGrowth
 
@@ -35,8 +35,9 @@ def run_spark_streaming():
     
     json_schema = StructType([
         StructField("TransactionNo", StringType(), True),
-        StructField("CustomerNo", StringType(), True), # THÊM DÒNG NÀY
-        StructField("items", ArrayType(StringType()), True)
+        StructField("CustomerNo", StringType(), True),
+        StructField("items", ArrayType(StringType()), True),
+        StructField("monetary_val", DoubleType(), True),
     ])
 
     # Đọc dữ liệu từ Kafka (Dùng 'kafka:9092' vì đang chạy trong mạng Docker)
@@ -51,7 +52,13 @@ def run_spark_streaming():
     parsed_stream_df = kafka_df \
         .selectExpr("CAST(value AS STRING) as json_string", "timestamp") \
         .select(from_json(col("json_string"), json_schema).alias("data"), "timestamp") \
-        .select("data.TransactionNo", "data.CustomerNo", "data.items", "timestamp") # THÊM "data.CustomerNo"
+        .select(
+            "data.TransactionNo",
+            "data.CustomerNo",
+            "data.items",
+            "data.monetary_val",
+            "timestamp",
+        )
 
     # ==============================================================
     # NHÁNH 1: THỐNG KÊ REAL-TIME (TÌM TOP PRODUCTS & XỬ LÝ SKEW)
@@ -94,7 +101,17 @@ def run_spark_streaming():
 
     # Xuất kết quả gợi ý vào Kafka (Topic: recommendation_stream)
     query_recommendations = predictions_stream \
-        .select(to_json(struct(col("TransactionNo"), col("CustomerNo"), col("items"), col("prediction"))).alias("value")) \
+        .select(
+            to_json(
+                struct(
+                    col("TransactionNo"),
+                    col("CustomerNo"),
+                    col("items"),
+                    col("prediction"),
+                    col("monetary_val"),
+                )
+            ).alias("value")
+        ) \
         .writeStream \
         .format("kafka") \
         .option("kafka.bootstrap.servers", "kafka:9092") \

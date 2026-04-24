@@ -1,9 +1,28 @@
+import os
 import time
 import json
 import pandas as pd
 import numpy as np
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable
+
+
+def _basket_to_items(basket) -> list[str]:
+    """Chuẩn hóa cột Basket (list/ndarray trong parquet) thành list[str] cho FP-Growth."""
+    if basket is None:
+        return []
+    if isinstance(basket, np.ndarray):
+        raw = basket.tolist()
+    elif isinstance(basket, (list, tuple)):
+        raw = list(basket)
+    else:
+        raw = [basket]
+    out: list[str] = []
+    for x in raw:
+        s = str(x).strip()
+        if s and s.lower() != "nan":
+            out.append(s)
+    return out
 
 
 # 1. Hàm khởi tạo kết nối có khả năng chờ Kafka
@@ -26,10 +45,14 @@ producer = get_producer()
 
 def run_simulator():
     print("--- 🚀 Bắt đầu phát dữ liệu giao dịch (Simulator) ---")
-    
-    # Sử dụng đường dẫn tuyệt đối trong Container
-    file_path = '/app/asso_products.parquet'
-    
+
+    # Docker: /app = project root (docker-compose mount). Local: thư mục gốc repo.
+    default_path = "/app/data/results/final_dataset_streaming.parquet"
+    file_path = os.environ.get("SIMULATOR_DATASET_PATH", default_path)
+    if not os.path.exists(file_path):
+        alt = os.path.join(os.path.dirname(__file__), "..", "data", "results", "final_dataset_streaming.parquet")
+        file_path = os.path.normpath(alt)
+
     try:
         df = pd.read_parquet(file_path)
     except Exception as e:
@@ -37,24 +60,33 @@ def run_simulator():
         return
 
     for index, row in df.iterrows():
-        # Chuẩn bị dữ liệu giao dịch (Thêm CustomerNo)
-        # Sử dụng get("CustomerID") hoặc get("CustomerNo") tùy theo tên cột trong file parquet gốc
-        cust_id = row.get("CustomerNo") 
+        cust_id = row.get("CustomerNo")
+        items = _basket_to_items(row.get("Basket"))
+        if not items:
+            continue
+
+        total_val = row.get("TotalOrderValue")
+        try:
+            monetary_val = float(total_val) if total_val is not None and not pd.isna(total_val) else 0.0
+        except (TypeError, ValueError):
+            monetary_val = 0.0
 
         record = {
             "TransactionNo": str(row.get("TransactionNo", f"TXN_{index}")),
-            "CustomerNo": str(cust_id) if cust_id else "Guest", # Lấy đúng ID từ file
-            "items": row["items"].tolist() if isinstance(row["items"], np.ndarray) else list(row["items"])
+            "CustomerNo": str(cust_id) if pd.notna(cust_id) and str(cust_id).strip() else "Guest",
+            "items": items,
+            "monetary_val": round(monetary_val, 2),
         }
-        
-        # Gửi dữ liệu vào Kafka
+
         try:
-            producer.send('live_transactions', value=record)
-            print(f"[Sent] TXN: {record['TransactionNo']} | CN: {record['CustomerNo']} |Items: {len(record['items'])}")
+            producer.send("live_transactions", value=record)
+            print(
+                f"[Sent] TXN: {record['TransactionNo']} | CN: {record['CustomerNo']} | "
+                f"Items: {len(record['items'])} | Doanh thu đơn: {record['monetary_val']}"
+            )
         except Exception as e:
             print(f"--- ⚠️ Lỗi khi gửi dữ liệu: {e} ---")
-        
-        # Nghỉ để giả lập thời gian thực
+
         time.sleep(2)
 
 if __name__ == "__main__":
