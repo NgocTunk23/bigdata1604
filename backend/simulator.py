@@ -12,7 +12,7 @@ def get_producer():
         try:
             # Chỉ khởi tạo bên trong khối try này
             p = KafkaProducer(
-                bootstrap_servers=['kafka:9092'],
+                bootstrap_servers=['localhost:9092'],
                 value_serializer=lambda v: json.dumps(v).encode('utf-8')
             )
             print("--- ✅ Kết nối Kafka thành công! ---")
@@ -28,7 +28,7 @@ def run_simulator():
     print("--- 🚀 Bắt đầu phát dữ liệu giao dịch (Simulator) ---")
     
     # Sử dụng đường dẫn tuyệt đối trong Container
-    file_path = '/app/asso_products.parquet'
+    file_path = '../asso_products.parquet'
     
     try:
         df = pd.read_parquet(file_path)
