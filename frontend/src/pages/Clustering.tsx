@@ -22,6 +22,8 @@ type RealtimeRow = {
   type: string;
 };
 
+const MAX_REALTIME_ROWS = 500;
+
 const SEGMENT_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   VIP: { label: "VIP", color: "#fbbf24", icon: <Crown className="text-yellow-400" /> },
   Potential: { label: "Tiem nang", color: "#05df72", icon: <Star className="text-green-400" /> },
@@ -48,9 +50,26 @@ export default function Clustering() {
 
     const fetchRealtime = async () => {
       try {
-        const res = await fetch("http://localhost:8000/api/v1/clustering/realtime?limit=20");
+        const res = await fetch("http://localhost:8000/api/v1/clustering/realtime?limit=30");
         const data = await res.json();
-        setRealtimeRows(Array.isArray(data?.rows) ? data.rows : []);
+        const incomingRows = Array.isArray(data?.rows) ? data.rows : [];
+        if (incomingRows.length === 0) return;
+
+        setRealtimeRows((previousRows) => {
+          const latestMap = new Map<string, RealtimeRow>();
+          incomingRows.forEach((row: RealtimeRow) => {
+            const key = `${row.cid}-${row.id}`;
+            latestMap.set(key, row);
+          });
+
+          const retainedRows = previousRows.filter((row) => {
+            const key = `${row.cid}-${row.id}`;
+            return !latestMap.has(key);
+          });
+
+          const mergedRows = [...incomingRows, ...retainedRows];
+          return mergedRows.slice(0, MAX_REALTIME_ROWS);
+        });
       } catch (error) {
         console.error("Loi lay clustering realtime:", error);
       }
@@ -60,7 +79,7 @@ export default function Clustering() {
     fetchRealtime();
 
     const statsTimer = setInterval(fetchStats, 5000);
-    const realtimeTimer = setInterval(fetchRealtime, 5000);
+    const realtimeTimer = setInterval(fetchRealtime, 2000);
     return () => {
       clearInterval(statsTimer);
       clearInterval(realtimeTimer);
@@ -174,6 +193,7 @@ export default function Clustering() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
+            <div className="max-h-[420px] overflow-y-auto">
             <Table>
               <TableHeader className="bg-[#1f2228]/80">
                 <TableRow className="border-[#4a6072]">
@@ -189,7 +209,7 @@ export default function Clustering() {
                 {realtimeRows.map((row) => {
                   const color = badgeColorByType(row.type);
                   return (
-                  <TableRow key={row.id} className="border-[#4a6072] hover:bg-[#4a6072]/40 transition-colors">
+                  <TableRow key={`${row.id}-${row.cid}`} className="border-[#4a6072] hover:bg-[#4a6072]/40 transition-colors">
                     <TableCell className="font-mono text-[11px] text-[#7b9bb8]">{row.id}</TableCell>
                     <TableCell className="font-medium text-sm text-green-400">{row.cid}</TableCell>
                     <TableCell className="text-right font-bold text-yellow-400">{row.spend}</TableCell>
@@ -211,6 +231,7 @@ export default function Clustering() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
 

@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import glob
 import ast
+from collections import deque
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,12 +28,23 @@ KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 # GLOBAL CACHE
 # ========================
 producer = None
+stream_consumer_task = None
+stream_state_lock = asyncio.Lock()
 products_df = pd.DataFrame()
 super_rules_df = pd.DataFrame()
 transactions_df = pd.DataFrame()
 clustered_users_df = pd.DataFrame()
 transactions_data_signature = None
 clustered_users_data_signature = None
+realtime_clustering_rows = deque(maxlen=1000)
+realtime_cluster_agg = {
+    segment: {"count": 0, "sum_recency_days": 0.0, "sum_orders": 0.0, "sum_aov": 0.0}
+    for segment in ["VIP", "Potential", "Risk", "Lost"]
+}
+stream_transaction_ids = set()
+stream_customer_ids = set()
+stream_product_ids = set()
+stream_revenue = 0.0
 
 # ========================
 # HELPER
@@ -118,6 +130,14 @@ def extract_items(val):
         return val
     if isinstance(val, (set, tuple)):
         return list(val)
+    # Spark parquet thường trả mảng kiểu numpy.ndarray cho cột antecedent/consequent.
+    # Trường hợp này cần ép về list trước khi xử lý tiếp.
+    if hasattr(val, "tolist") and not isinstance(val, str):
+        converted = val.tolist()
+        if isinstance(converted, list):
+            return converted
+        if isinstance(converted, (set, tuple)):
+            return list(converted)
     if isinstance(val, str):
         raw = val.strip()
         if not raw:
@@ -189,6 +209,145 @@ def format_recency(days_value):
 
 def format_spend_k(value):
     return f"{value:,.0f}k"
+
+
+def _safe_float(value, default=0.0):
+    try:
+        if value is None:
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _safe_int(value, default=0):
+    try:
+        if value is None:
+            return default
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _normalize_segment(raw_type: str):
+    text = str(raw_type or "").strip().lower()
+    if text in ("vip",):
+        return "VIP"
+    if text in ("potential", "tiem nang", "tiemnang"):
+        return "Potential"
+    if text in ("risk", "nguy co", "nguyco"):
+        return "Risk"
+    if text in ("lost", "vang lai", "vanglai"):
+        return "Lost"
+    return "Potential"
+
+
+def _build_cluster_profile_lookup(df: pd.DataFrame):
+    if df is None or df.empty:
+        return {}
+
+    if "CustomerNo" not in df.columns:
+        return {}
+
+    segment_map = build_cluster_segment_map(df)
+    lookup = {}
+    for _, row in df.iterrows():
+        customer_no = str(row.get("CustomerNo", "")).strip()
+        if not customer_no:
+            continue
+
+        cluster_id = row.get("cluster")
+        lookup[customer_no] = {
+            "segment": segment_map.get(cluster_id, "Potential"),
+            "avg_orders": _safe_float(row.get("total_orders", 1), 1.0),
+            "avg_aov": _safe_float(row.get("avg_order_value", 0), 0.0),
+            "recency_days": _safe_float(row.get("recency_days", 0), 0.0),
+        }
+    return lookup
+
+
+async def consume_kafka_streams_forever():
+    global stream_revenue
+    consumer = AIOKafkaConsumer(
+        "top_products_stream",
+        "recommendation_stream",
+        "customer_clustering",
+        bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+        value_deserializer=lambda v: json.loads(v.decode("utf-8")),
+        auto_offset_reset="latest",
+    )
+    await consumer.start()
+    print("✅ Background Kafka stream consumer started")
+
+    try:
+        async for msg in consumer:
+            topic = msg.topic
+            data = msg.value or {}
+            if not isinstance(data, dict):
+                continue
+
+            if topic not in ("recommendation_stream", "customer_clustering"):
+                continue
+
+            tx_no = str(data.get("TransactionNo", "")).strip()
+            customer_no = str(data.get("CustomerNo", "")).strip()
+            items = extract_items(data.get("items", []))
+
+            refresh_clustered_users_if_changed()
+            profile_lookup = _build_cluster_profile_lookup(clustered_users_df)
+            profile = profile_lookup.get(customer_no, {})
+
+            segment = data.get("rfm_label")
+            if not segment and data.get("cluster_id") is not None and not clustered_users_df.empty:
+                cluster_map = build_cluster_segment_map(clustered_users_df)
+                segment = cluster_map.get(data.get("cluster_id"), "Potential")
+            if not segment:
+                segment = profile.get("segment", "Potential")
+            segment = _normalize_segment(segment)
+
+            recency_val = _safe_float(data.get("recency_val"), profile.get("recency_days", 0))
+            frequency_val = _safe_int(data.get("frequency_val"), round(profile.get("avg_orders", 1)))
+            monetary_val = _safe_float(data.get("monetary_val"), profile.get("avg_aov", 0))
+
+            realtime_row = {
+                "id": tx_no or "TXN-UNKNOWN",
+                "cid": f"CUS-{customer_no}" if customer_no else "CUS-UNKNOWN",
+                "spend": format_spend_k(monetary_val),
+                "freq": max(frequency_val, 1),
+                "rec": format_recency(recency_val),
+                "type": segment,
+            }
+
+            async with stream_state_lock:
+                realtime_clustering_rows.appendleft(realtime_row)
+
+                agg = realtime_cluster_agg.get(segment)
+                if agg is not None:
+                    agg["count"] += 1
+                    agg["sum_recency_days"] += recency_val
+                    agg["sum_orders"] += max(frequency_val, 1)
+                    agg["sum_aov"] += monetary_val
+
+                if tx_no:
+                    stream_transaction_ids.add(tx_no)
+                if customer_no:
+                    stream_customer_ids.add(customer_no)
+
+                for item in items:
+                    cleaned = str(item).strip()
+                    if cleaned:
+                        stream_product_ids.add(cleaned)
+
+                stream_revenue += monetary_val
+
+    except asyncio.CancelledError:
+        print("🛑 Background Kafka stream consumer cancelled")
+        raise
+    except Exception as e:
+        print(f"❌ Background Kafka stream consumer error: {e}")
+    finally:
+        await consumer.stop()
+        print("🛑 Background Kafka stream consumer stopped")
     
 # ========================
 # LIFESPAN (INIT APP)
@@ -196,6 +355,7 @@ def format_spend_k(value):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global producer, products_df, super_rules_df, transactions_df, clustered_users_df
+    global stream_consumer_task
     global transactions_data_signature, clustered_users_data_signature
 
     # --- Kafka Producer ---
@@ -239,7 +399,16 @@ async def lifespan(app: FastAPI):
         clustered_users_df = pd.DataFrame()
         clustered_users_data_signature = None
 
+    stream_consumer_task = asyncio.create_task(consume_kafka_streams_forever())
+
     yield
+
+    if stream_consumer_task:
+        stream_consumer_task.cancel()
+        try:
+            await stream_consumer_task
+        except asyncio.CancelledError:
+            pass
 
     await producer.stop()
     print("🛑 Kafka Producer stopped")
@@ -429,6 +598,12 @@ async def get_dashboard_metrics():
                 "cust": format_trend(cur_cust, prev_cust),
             }
 
+        async with stream_state_lock:
+            total_transactions += len(stream_transaction_ids)
+            total_customers += len(stream_customer_ids)
+            total_products = max(total_products, len(stream_product_ids))
+            revenue = round(revenue + stream_revenue, 2)
+
         return {
             "total_transactions": total_transactions,
             "revenue": revenue,
@@ -443,8 +618,25 @@ async def get_dashboard_metrics():
 @app.get("/api/v1/clustering/stats")
 async def get_clustering_stats():
     try:
-        refresh_clustered_users_if_changed()
+        stats = []
+        async with stream_state_lock:
+            has_realtime = any(v["count"] > 0 for v in realtime_cluster_agg.values())
+            if has_realtime:
+                for segment_name in CLUSTER_SEGMENT_ORDER:
+                    agg = realtime_cluster_agg.get(segment_name, {"count": 0, "sum_recency_days": 0.0, "sum_orders": 0.0, "sum_aov": 0.0})
+                    count = agg["count"]
+                    stats.append(
+                        {
+                            "type": segment_name,
+                            "count": int(count),
+                            "avg_recency_days": round(agg["sum_recency_days"] / count, 2) if count else 0,
+                            "avg_orders": round(agg["sum_orders"] / count, 2) if count else 0,
+                            "avg_aov": round(agg["sum_aov"] / count, 2) if count else 0,
+                        }
+                    )
+                return stats
 
+        refresh_clustered_users_if_changed()
         if clustered_users_df is None or clustered_users_df.empty or "cluster" not in clustered_users_df.columns:
             return [
                 {"type": "VIP", "count": 0, "avg_recency_days": 0, "avg_orders": 0, "avg_aov": 0},
@@ -455,7 +647,6 @@ async def get_clustering_stats():
 
         df = clustered_users_df.copy()
         cluster_to_segment = build_cluster_segment_map(df)
-
         grouped = df.groupby("cluster").agg(
             count=("cluster", "size"),
             avg_recency_days=("recency_days", "mean"),
@@ -463,17 +654,8 @@ async def get_clustering_stats():
             avg_aov=("avg_order_value", "mean"),
         )
 
-        stats = []
         for segment_name in CLUSTER_SEGMENT_ORDER:
-            stats.append(
-                {
-                    "type": segment_name,
-                    "count": 0,
-                    "avg_recency_days": 0,
-                    "avg_orders": 0,
-                    "avg_aov": 0,
-                }
-            )
+            stats.append({"type": segment_name, "count": 0, "avg_recency_days": 0, "avg_orders": 0, "avg_aov": 0})
 
         for cluster_id, row in grouped.iterrows():
             segment = cluster_to_segment.get(cluster_id)
@@ -493,44 +675,9 @@ async def get_clustering_stats():
 @app.get("/api/v1/clustering/realtime")
 async def get_clustering_realtime(limit: int = 20):
     try:
-        refresh_clustered_users_if_changed()
-
-        if clustered_users_df is None or clustered_users_df.empty:
-            return {"rows": []}
-
-        df = clustered_users_df.copy()
-        if "cluster" not in df.columns:
-            return {"rows": []}
-
-        cluster_to_segment = build_cluster_segment_map(df)
-
-        if "recency_days" in df.columns:
-            sort_df = df.sort_values(by="recency_days", ascending=True)
-        else:
-            sort_df = df
-
-        top_rows = sort_df.head(max(1, min(limit, 100)))
-
-        rows = []
-        for _, row in top_rows.iterrows():
-            customer_no = str(row.get("CustomerNo", ""))
-            recency_days = float(row.get("recency_days", 0) or 0)
-            avg_orders = float(row.get("total_orders", 0) or 0)
-            avg_aov = float(row.get("avg_order_value", 0) or 0)
-            cluster_id = row.get("cluster", None)
-            segment = cluster_to_segment.get(cluster_id, "Potential")
-
-            rows.append(
-                {
-                    "id": f"TX{customer_no[-4:]}" if customer_no else "TX0000",
-                    "cid": f"CUS-{customer_no[-4:]}" if customer_no else "CUS-00",
-                    "spend": format_spend_k(avg_aov),
-                    "freq": int(round(avg_orders)),
-                    "rec": format_recency(recency_days),
-                    "type": segment,
-                }
-            )
-
+        take = max(1, min(limit, 500))
+        async with stream_state_lock:
+            rows = list(realtime_clustering_rows)[:take]
         return {"rows": rows}
     except Exception as e:
         return {"error": str(e), "rows": []}

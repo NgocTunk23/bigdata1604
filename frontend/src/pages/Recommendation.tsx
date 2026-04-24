@@ -146,11 +146,49 @@ export default function Recommendation() {
         {/* Kết quả Standard bên dưới ô chọn */}
         <Card className="bg-[#353a44] border-[#4a6072] border-t-2 border-t-green-500 pt-0 pb-6">
           <CardHeader className="bg-[#1f2228]/50 flex flex-row items-center justify-between py-4">
-            <CardTitle className="text-md text-[#e8edf3] flex items-center gap-2">Phân tích Tiêu chuẩn</CardTitle>
-            <Button size="sm" onClick={analyzeStandard} className="bg-green-600 hover:bg-green-700">Gửi vào Luồng Kafka</Button>
+            <CardTitle className="text-md text-green-400">
+              Kết quả gợi ý Standard
+            </CardTitle>
+
+            <Button size="sm" onClick={analyzeStandard} className="bg-green-600 hover:bg-green-700 text-black font-bold" disabled={loadingStd}>
+              {loadingStd ? <Loader2 className="animate-spin" size={16}/> : "Phân tích"}
+            </Button>
           </CardHeader>
-          <CardContent className="p-4 text-center">
-            {stdStatus ? <p className="text-green-400 font-bold animate-pulse">{stdStatus}</p> : <p className="text-sm text-[#7b9bb8]">Kết quả sẽ cập nhật tại Dashboard qua WebSocket.</p>}
+
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader className="bg-[#1f2228]">
+                <TableRow>
+                  <TableHead className = "text-green-400">Mã SP</TableHead>
+                  <TableHead className = "text-green-400">Tên SP</TableHead>
+                  <TableHead className = "text-green-400">Gợi ý</TableHead>
+                  <TableHead className="text-center text-green-400">Độ tin cậy (%)</TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {stdResults.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-6 text-gray-400">
+                      Chưa có kết quả
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  stdResults.map((item, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell className="text-green-400 font-medium">{item.product_id}</TableCell>
+                      <TableCell className="text-green-400 font-medium">{item.product_name}</TableCell>
+                      <TableCell className="text-green-400">
+                        {item.suggestion}
+                      </TableCell>
+                      <TableCell className="text-center text-green-400">
+                        {item.confidence}%
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
@@ -203,59 +241,13 @@ export default function Recommendation() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-[#353a44] border-[#4a6072] border-t-2 border-t-green-500 pt-0 pb-6">
-          <CardHeader className="bg-[#1f2228]/50 flex flex-row items-center justify-between py-4">
-            <CardTitle className="text-md text-green-400">
-              Kết quả gợi ý (Standard)
-            </CardTitle>
 
-            <Button size="sm" onClick={analyzeStandard} disabled={loadingStd}>
-              {loadingStd ? <Loader2 className="animate-spin" size={16}/> : "Phân tích"}
-            </Button>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader className="bg-[#1f2228]">
-                <TableRow>
-                  <TableHead>Mã SP</TableHead>
-                  <TableHead>Tên SP</TableHead>
-                  <TableHead>Gợi ý</TableHead>
-                  <TableHead className="text-center">Confidence (%)</TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {stdResults.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6 text-gray-400">
-                      Chưa có kết quả
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  stdResults.map((item, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell>{item.product_id}</TableCell>
-                      <TableCell>{item.product_name}</TableCell>
-                      <TableCell className="text-green-400">
-                        {item.suggestion}
-                      </TableCell>
-                      <TableCell className="text-center text-yellow-400">
-                        {item.confidence}%
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
         {/* Kết quả Super bên dưới ô chọn */}
         <Card className="bg-[#353a44] border-[#4a6072] border-t-2 border-t-yellow-500 pt-0 pb-6">
           <CardHeader className="bg-[#1f2228]/50 flex flex-row items-center justify-between py-4">
             <CardTitle className="text-md text-yellow-500 flex items-center gap-2">Kết quả Super Recommendation</CardTitle>
             <Button size="sm" onClick={analyzeSuper} className="bg-yellow-600 hover:bg-yellow-700 text-black font-bold" disabled={loadingSuper}>
-              {loadingSuper ? <Loader2 className="animate-spin" size={16} /> : "Phân tích ngay"}
+              {loadingSuper ? <Loader2 className="animate-spin" size={16} /> : "Phân tích"}
             </Button>
           </CardHeader>
           <CardContent className="p-0">
@@ -274,7 +266,7 @@ export default function Recommendation() {
                 ) : (
                   supResults.map((item, idx) => (
                     <TableRow key={idx} className="border-[#4a6072] hover:bg-[#1f2228]/30">
-                      <TableCell className="text-gray-400 text-xs">
+                      <TableCell className="text-yellow-400 font-medium">
                         {item.selected_items}
                       </TableCell>
 
@@ -282,11 +274,11 @@ export default function Recommendation() {
                         {item.suggestion}
                       </TableCell>
 
-                      <TableCell className="text-center text-green-400 font-mono">
+                      <TableCell className="text-center text-yellow-400 font-mono">
                         {item.confidence}%
                       </TableCell>
 
-                      <TableCell className="text-right text-blue-400 font-mono">
+                      <TableCell className="text-right text-yellow-400 font-mono">
                         {item.lift}
                       </TableCell>
                     </TableRow>
