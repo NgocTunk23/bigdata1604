@@ -6,7 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
   CartesianGrid
 } from 'recharts';
-import { ShoppingBag, DollarSign, Activity } from "lucide-react";
+import { ShoppingBag, DollarSign, Activity, Users, Package, Wallet } from "lucide-react";
 
 type RealtimeTxnRow = {
   transactionNo: string;
@@ -15,6 +15,23 @@ type RealtimeTxnRow = {
 };
 
 const DASHBOARD_STREAM_STATE_KEY = "dashboard_stream_state_v1";
+const ONE_MINUTE_MS = 60_000;
+
+type RealtimeMetrics = {
+  tx: number;
+  revenue: number;
+  customers: number;
+  products: number;
+  aov: number;
+};
+
+type MetricGrowth = {
+  tx: string;
+  revenue: string;
+  customers: string;
+  products: string;
+  aov: string;
+};
 
 function readPersistedDashboardState() {
   if (typeof window === "undefined") {
@@ -37,10 +54,61 @@ export default function Dashboard() {
   const [lineData, setLineData] = useState<any[]>(persisted?.lineData ?? []);
   const [realtimeTxCount, setRealtimeTxCount] = useState<number>(persisted?.realtimeTxCount ?? 0);
   const [realtimeRevenue, setRealtimeRevenue] = useState<number>(persisted?.realtimeRevenue ?? 0);
+  const [realtimeCustomerCount, setRealtimeCustomerCount] = useState<number>(persisted?.realtimeCustomerCount ?? 0);
+  const [realtimeProductCount, setRealtimeProductCount] = useState<number>(persisted?.realtimeProductCount ?? 0);
+  const [realtimeAov, setRealtimeAov] = useState<number>(persisted?.realtimeAov ?? 0);
+  const [growth, setGrowth] = useState<MetricGrowth>(persisted?.growth ?? {
+    tx: "0.0%",
+    revenue: "0.0%",
+    customers: "0.0%",
+    products: "0.0%",
+    aov: "0.0%",
+  });
   const [realtimeTxRows, setRealtimeTxRows] = useState<RealtimeTxnRow[]>(persisted?.realtimeTxRows ?? []);
   const topProductsRef = useRef<any>(persisted?.topProductsMap ?? {}); // Dùng Ref để lưu trữ tạm bộ đếm sản phẩm
   const seenTransactionsRef = useRef<Set<string>>(new Set(persisted?.seenTransactions ?? []));
+  const seenCustomersRef = useRef<Set<string>>(new Set(persisted?.seenCustomers ?? []));
+  const seenProductsRef = useRef<Set<string>>(new Set(persisted?.seenProducts ?? []));
+  const metricHistoryRef = useRef<Array<{ ts: number; metrics: RealtimeMetrics }>>(persisted?.metricHistory ?? []);
+  const metricCurrentRef = useRef<RealtimeMetrics>({
+    tx: persisted?.realtimeTxCount ?? 0,
+    revenue: persisted?.realtimeRevenue ?? 0,
+    customers: persisted?.realtimeCustomerCount ?? 0,
+    products: persisted?.realtimeProductCount ?? 0,
+    aov: persisted?.realtimeAov ?? 0,
+  });
   const MAX_REALTIME_ROWS = 300;
+
+  const formatGrowth = (current: number, previous: number) => {
+    if (previous <= 0) {
+      return current > 0 ? "+100.0%" : "0.0%";
+    }
+    const pct = ((current - previous) / previous) * 100;
+    const sign = pct > 0 ? "+" : "";
+    return `${sign}${pct.toFixed(1)}%`;
+  };
+
+  const updateGrowthByTimeline = (currentMetrics: RealtimeMetrics) => {
+    const now = Date.now();
+    const history = [...metricHistoryRef.current, { ts: now, metrics: currentMetrics }].filter(
+      (point) => now - point.ts <= ONE_MINUTE_MS * 2
+    );
+    metricHistoryRef.current = history;
+
+    const baselineCandidates = history.filter((point) => point.ts <= now - ONE_MINUTE_MS);
+    const baseline =
+      baselineCandidates[baselineCandidates.length - 1] ??
+      history[0] ??
+      { ts: now, metrics: { tx: 0, revenue: 0, customers: 0, products: 0, aov: 0 } };
+
+    setGrowth({
+      tx: formatGrowth(currentMetrics.tx, baseline.metrics.tx),
+      revenue: formatGrowth(currentMetrics.revenue, baseline.metrics.revenue),
+      customers: formatGrowth(currentMetrics.customers, baseline.metrics.customers),
+      products: formatGrowth(currentMetrics.products, baseline.metrics.products),
+      aov: formatGrowth(currentMetrics.aov, baseline.metrics.aov),
+    });
+  };
 
   useEffect(() => {
     // Chỉ giữ chart top products từ API cũ, các card metrics lấy trực tiếp từ stream.
@@ -76,11 +144,39 @@ export default function Dashboard() {
 
         const customerNo = String(data?.CustomerNo ?? "").trim();
         const rawItems = Array.isArray(data?.items) ? data.items : [];
-        const normalizedItems = rawItems.map((it: unknown) => String(it)).filter(Boolean);
+        const normalizedItems: string[] = rawItems.map((it: unknown) => String(it)).filter(Boolean);
         const estimatedRevenue = Number(data?.monetary_val ?? 0) || 0;
 
-        setRealtimeTxCount((prev) => prev + 1);
-        setRealtimeRevenue((prev) => prev + estimatedRevenue);
+        if (customerNo) {
+          seenCustomersRef.current.add(customerNo);
+        }
+        normalizedItems.forEach((item) => seenProductsRef.current.add(item));
+
+        const nextTxCount = metricCurrentRef.current.tx + 1;
+        const nextRevenue = metricCurrentRef.current.revenue + estimatedRevenue;
+        const nextCustomerCount = seenCustomersRef.current.size;
+        const nextProductCount = seenProductsRef.current.size;
+        const nextAov = nextTxCount > 0 ? nextRevenue / nextTxCount : 0;
+        metricCurrentRef.current = {
+          tx: nextTxCount,
+          revenue: nextRevenue,
+          customers: nextCustomerCount,
+          products: nextProductCount,
+          aov: nextAov,
+        };
+
+        setRealtimeTxCount(nextTxCount);
+        setRealtimeRevenue(nextRevenue);
+        setRealtimeCustomerCount(nextCustomerCount);
+        setRealtimeProductCount(nextProductCount);
+        setRealtimeAov(nextAov);
+        updateGrowthByTimeline({
+          tx: nextTxCount,
+          revenue: nextRevenue,
+          customers: nextCustomerCount,
+          products: nextProductCount,
+          aov: nextAov,
+        });
         setRealtimeTxRows((prev) => {
           const nextRows = [
             {
@@ -115,22 +211,64 @@ export default function Dashboard() {
       lineData,
       realtimeTxCount,
       realtimeRevenue,
+      realtimeCustomerCount,
+      realtimeProductCount,
+      realtimeAov,
+      growth,
       realtimeTxRows,
       topProductsMap: topProductsRef.current,
       seenTransactions: Array.from(seenTransactionsRef.current),
+      seenCustomers: Array.from(seenCustomersRef.current),
+      seenProducts: Array.from(seenProductsRef.current),
+      metricHistory: metricHistoryRef.current,
     };
     window.sessionStorage.setItem(DASHBOARD_STREAM_STATE_KEY, JSON.stringify(payload));
-  }, [topProducts, lineData, realtimeTxCount, realtimeRevenue, realtimeTxRows]);
+  }, [
+    topProducts,
+    lineData,
+    realtimeTxCount,
+    realtimeRevenue,
+    realtimeCustomerCount,
+    realtimeProductCount,
+    realtimeAov,
+    growth,
+    realtimeTxRows,
+  ]);
 
   return (
     <div className="min-h-screen p-6 space-y-6 bg-[#1f2228] text-[#e8edf3]">
       
       {/* SECTION 1: METRIC CARDS REALTIME */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
         <MetricCard 
           title="Giao Dịch" 
           value={realtimeTxCount.toLocaleString()} 
           icon={<ShoppingBag className="text-blue-400" />} 
+          growth={growth.tx}
+        />
+        <MetricCard 
+          title="Doanh thu" 
+          value={realtimeRevenue.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} 
+          icon={<DollarSign className="text-emerald-400" />}
+          growth={growth.revenue}
+        />
+        <MetricCard 
+          title="Khách hàng" 
+          value={realtimeCustomerCount.toLocaleString()} 
+          icon={<Users className="text-cyan-400" />}
+          growth={growth.customers}
+        />
+        <MetricCard 
+          title="AOV" 
+          value={realtimeAov.toLocaleString("vi-VN", { maximumFractionDigits: 2 })} 
+          icon={<Wallet className="text-amber-400" />}
+          growth={growth.aov}
+        />
+        <MetricCard 
+          title="Sản phẩm" 
+          value={realtimeProductCount.toLocaleString()} 
+          icon={<Package className="text-violet-400" />}
+          growth={growth.products}
         />
       </div>
 
@@ -201,7 +339,7 @@ export default function Dashboard() {
   );
 }
 
-function MetricCard({ title, value, icon }: any) {
+function MetricCard({ title, value, icon, growth }: any) {
   return (
     <Card className="bg-[#353a44] border-[#4a6072] text-[#e8edf3]">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -210,6 +348,7 @@ function MetricCard({ title, value, icon }: any) {
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
+        <div className="text-xs text-[#7b9bb8] mt-1">Tăng trưởng: <span className="text-[#e8edf3]">{growth}</span></div>
       </CardContent>
     </Card>
   );

@@ -1,4 +1,4 @@
-import { LayoutDashboard, ShoppingBag, Users } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Users, Activity } from "lucide-react";
 import { 
   Sidebar, 
   SidebarContent, 
@@ -12,9 +12,10 @@ import {
 import { Link, useLocation } from "react-router-dom";
 
 const items = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Recommendation", url: "/recommendation", icon: ShoppingBag },
-  { title: "Clustering", url: "/clustering", icon: Users },
+  { title: "Bảng điều khiển", url: "/", icon: LayoutDashboard },
+  { title: "Phân tích sâu", url: "/deep-analysis", icon: Activity },
+  { title: "Luật sinh", url: "/recommendation", icon: ShoppingBag },
+  { title: "Phân cụm", url: "/clustering", icon: Users },
 ];
 
 export function AppSidebar() {

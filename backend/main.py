@@ -45,6 +45,8 @@ stream_transaction_ids = set()
 stream_customer_ids = set()
 stream_product_ids = set()
 stream_revenue = 0.0
+deep_analysis_events = deque(maxlen=20000)
+weekday_labels_vi = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
 
 # ========================
 # HELPER
@@ -242,6 +244,99 @@ def _normalize_segment(raw_type: str):
     return "Potential"
 
 
+def _event_datetime_from_payload(data: dict):
+    if not isinstance(data, dict):
+        return None
+    candidate_fields = ["Date", "Timestamp", "InvoiceDate", "created_at", "event_time"]
+    for field in candidate_fields:
+        value = data.get(field)
+        if value is None:
+            continue
+        dt = pd.to_datetime(value, errors="coerce")
+        if pd.notna(dt):
+            return dt
+    return None
+
+
+def _build_deep_analysis_snapshot(events):
+    if not events:
+        return {
+            "daily_trend": [],
+            "rolling_30_days": [],
+            "hourly_distribution": [{"hour": f"{h:02d}:00", "orders": 0} for h in range(24)],
+            "weekday_distribution": [{"weekday": label, "orders": 0} for label in weekday_labels_vi],
+            "heatmap": [],
+        }
+
+    df = pd.DataFrame(events)
+    if df.empty:
+        return {
+            "daily_trend": [],
+            "rolling_30_days": [],
+            "hourly_distribution": [{"hour": f"{h:02d}:00", "orders": 0} for h in range(24)],
+            "weekday_distribution": [{"weekday": label, "orders": 0} for label in weekday_labels_vi],
+            "heatmap": [],
+        }
+
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+    df = df.dropna(subset=["timestamp"])
+    if df.empty:
+        return {
+            "daily_trend": [],
+            "rolling_30_days": [],
+            "hourly_distribution": [{"hour": f"{h:02d}:00", "orders": 0} for h in range(24)],
+            "weekday_distribution": [{"weekday": label, "orders": 0} for label in weekday_labels_vi],
+            "heatmap": [],
+        }
+
+    df["day"] = df["timestamp"].dt.floor("D")
+    df["hour"] = df["timestamp"].dt.hour
+    df["weekday"] = df["timestamp"].dt.weekday
+
+    daily_series = df.groupby("day").size().sort_index()
+    daily_trend = [
+        {"date": day.strftime("%Y-%m-%d"), "orders": int(count)}
+        for day, count in daily_series.items()
+    ]
+
+    if not daily_series.empty:
+        last_day = daily_series.index.max()
+        window_days = pd.date_range(end=last_day, periods=30, freq="D")
+        rolling_series = daily_series.reindex(window_days, fill_value=0)
+    else:
+        rolling_series = pd.Series(dtype="int64")
+    rolling_30_days = [
+        {"date": day.strftime("%m-%d"), "orders": int(count)}
+        for day, count in rolling_series.items()
+    ]
+
+    hourly_series = df.groupby("hour").size()
+    hourly_distribution = [
+        {"hour": f"{hour:02d}:00", "orders": int(hourly_series.get(hour, 0))}
+        for hour in range(24)
+    ]
+
+    weekday_series = df.groupby("weekday").size()
+    weekday_distribution = [
+        {"weekday": label, "orders": int(weekday_series.get(idx, 0))}
+        for idx, label in enumerate(weekday_labels_vi)
+    ]
+
+    heatmap = []
+    for weekday_idx, weekday_label in enumerate(weekday_labels_vi):
+        for hour in range(24):
+            count = int(df[(df["weekday"] == weekday_idx) & (df["hour"] == hour)].shape[0])
+            heatmap.append({"weekday": weekday_label, "hour": hour, "orders": count})
+
+    return {
+        "daily_trend": daily_trend,
+        "rolling_30_days": rolling_30_days,
+        "hourly_distribution": hourly_distribution,
+        "weekday_distribution": weekday_distribution,
+        "heatmap": heatmap,
+    }
+
+
 def _build_cluster_profile_lookup(df: pd.DataFrame):
     if df is None or df.empty:
         return {}
@@ -292,6 +387,9 @@ async def consume_kafka_streams_forever():
             tx_no = str(data.get("TransactionNo", "")).strip()
             customer_no = str(data.get("CustomerNo", "")).strip()
             items = extract_items(data.get("items", []))
+            event_dt = _event_datetime_from_payload(data)
+            if event_dt is None:
+                event_dt = pd.Timestamp.utcnow()
 
             refresh_clustered_users_if_changed()
             profile_lookup = _build_cluster_profile_lookup(clustered_users_df)
@@ -339,6 +437,13 @@ async def consume_kafka_streams_forever():
                         stream_product_ids.add(cleaned)
 
                 stream_revenue += monetary_val
+                if topic == "recommendation_stream":
+                    deep_analysis_events.appendleft(
+                        {
+                            "transaction_no": tx_no,
+                            "timestamp": event_dt.isoformat(),
+                        }
+                    )
 
     except asyncio.CancelledError:
         print("🛑 Background Kafka stream consumer cancelled")
@@ -683,6 +788,16 @@ async def get_clustering_realtime(limit: int = 20):
         return {"error": str(e), "rows": []}
 
 
+@app.get("/api/v1/deep-analysis/snapshot")
+async def get_deep_analysis_snapshot():
+    try:
+        async with stream_state_lock:
+            events = list(deep_analysis_events)
+        return _build_deep_analysis_snapshot(events)
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # ========================
 # WEBSOCKET (KAFKA → FE)
 # ========================
@@ -715,3 +830,17 @@ async def websocket_endpoint(websocket: WebSocket):
 
     finally:
         await consumer.stop()
+
+
+@app.websocket("/ws/deep-analysis")
+async def websocket_deep_analysis(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            async with stream_state_lock:
+                events = list(deep_analysis_events)
+            payload = _build_deep_analysis_snapshot(events)
+            await websocket.send_json({"topic": "deep_analysis_snapshot", "data": payload})
+            await asyncio.sleep(2)
+    except WebSocketDisconnect:
+        print("Deep analysis client disconnected")

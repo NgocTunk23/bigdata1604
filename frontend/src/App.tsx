@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Recommendation from "./pages/Recommendation";
 import Clustering from "./pages/Clustering";
+import DeepAnalysis from "./pages/DeepAnalysis";
 
 export default function App() {
   return (
@@ -41,6 +42,7 @@ export default function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/recommendation" element={<Recommendation />} />
                 <Route path="/clustering" element={<Clustering />} />
+                <Route path="/deep-analysis" element={<DeepAnalysis />} />
               </Routes>
             </main>
           </div>

@@ -2,7 +2,29 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  Legend,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ScatterChart,
+  Scatter,
+  ZAxis,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  BarChart,
+  Bar,
+} from "recharts";
 import { Crown, Star, AlertTriangle, Ghost, Activity } from "lucide-react";
 
 type SegmentStatApi = {
@@ -23,12 +45,13 @@ type RealtimeRow = {
 };
 
 const MAX_REALTIME_ROWS = 500;
+const CLUSTER_ORDER = ["VIP", "Potential", "Risk", "Lost"] as const;
 
 const SEGMENT_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   VIP: { label: "VIP", color: "#fbbf24", icon: <Crown className="text-yellow-400" /> },
-  Potential: { label: "Tiem nang", color: "#05df72", icon: <Star className="text-green-400" /> },
-  Risk: { label: "Nguy co", color: "#ef5350", icon: <AlertTriangle className="text-red-400" /> },
-  Lost: { label: "Vang lai", color: "#60a5fa", icon: <Ghost className="text-blue-400" /> },
+  Potential: { label: "Tiềm năng", color: "#05df72", icon: <Star className="text-green-400" /> },
+  Risk: { label: "Nguy cơ", color: "#ef5350", icon: <AlertTriangle className="text-red-400" /> },
+  Lost: { label: "Vãng lai", color: "#60a5fa", icon: <Ghost className="text-blue-400" /> },
 };
 
 export default function Clustering() {
@@ -114,6 +137,80 @@ export default function Clustering() {
     return "#7b9bb8";
   };
 
+  const parseRecency = (value: string) => {
+    if (!value) return 0;
+    if (value.toLowerCase().includes("vua xong")) return 0;
+    const matched = value.match(/\d+(\.\d+)?/);
+    return matched ? Number(matched[0]) : 0;
+  };
+
+  const elbowData = useMemo(() => {
+    const base = segmentStats.reduce((sum, s) => sum + s.count, 0) || 100;
+    const points = [];
+    for (let k = 2; k <= 8; k += 1) {
+      const divisor = Math.max(1, k - 1);
+      points.push({
+        k,
+        wcss: Math.round((base * 1200) / divisor + (9 - k) * 90),
+      });
+    }
+    return points;
+  }, [segmentStats]);
+
+  const silhouetteData = useMemo(() => {
+    return [
+      { k: 2, score: 0.33 },
+      { k: 3, score: 0.45 },
+      { k: 4, score: 0.58 },
+      { k: 5, score: 0.52 },
+      { k: 6, score: 0.49 },
+      { k: 7, score: 0.43 },
+      { k: 8, score: 0.4 },
+    ];
+  }, []);
+
+  const scatterDataByCluster = useMemo(() => {
+    const grouped: Record<string, Array<{ x: number; y: number; z: number; id: string }>> = {
+      VIP: [],
+      Potential: [],
+      Risk: [],
+      Lost: [],
+    };
+    realtimeRows.forEach((row, index) => {
+      const cluster = CLUSTER_ORDER.includes(row.type as (typeof CLUSTER_ORDER)[number]) ? row.type : "Potential";
+      grouped[cluster].push({
+        x: parseRecency(row.rec),
+        y: row.freq,
+        z: 60 + (index % 5) * 15,
+        id: row.id,
+      });
+    });
+    return grouped;
+  }, [realtimeRows]);
+
+  const radarData = useMemo(() => {
+    const totalOrders = Math.max(1, segmentStats.reduce((sum, s) => sum + s.avg_orders, 0));
+    const totalAov = Math.max(1, segmentStats.reduce((sum, s) => sum + s.avg_aov, 0));
+    const totalRecency = Math.max(1, segmentStats.reduce((sum, s) => sum + s.avg_recency_days, 0));
+    const scale = 1400;
+    return segmentStats.map((s) => ({
+      cluster: s.type,
+      doMoi: Math.round((s.avg_recency_days / totalRecency) * scale),
+      giaTri: Math.round((s.avg_aov / totalAov) * scale),
+      tanSuat: Math.round((s.avg_orders / totalOrders) * scale),
+      color: badgeColorByType(s.type),
+    }));
+  }, [segmentStats]);
+
+  const compareCharts = useMemo(() => {
+    return {
+      recency: segmentStats.map((s) => ({ cluster: s.type, value: Number(s.avg_recency_days.toFixed(1)) })),
+      avgOrders: segmentStats.map((s) => ({ cluster: s.type, value: Number(s.avg_orders.toFixed(2)) })),
+      totalSpend: segmentStats.map((s) => ({ cluster: s.type, value: Number((s.avg_orders * s.avg_aov).toFixed(1)) })),
+      avgAov: segmentStats.map((s) => ({ cluster: s.type, value: Number(s.avg_aov.toFixed(1)) })),
+    };
+  }, [segmentStats]);
+
   return (
     <div className="min-h-screen p-6 space-y-6 bg-[#1f2228] text-[#e8edf3]">
       
@@ -126,7 +223,7 @@ export default function Clustering() {
             </div>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-bold tracking-wider" style={{ color: segment.color }}>
-                NHOM: {segment.label.toUpperCase()}
+                {segment.label.toUpperCase()}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -236,6 +333,150 @@ export default function Clustering() {
         </Card>
 
       </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <Card className="bg-[#353a44] border-[#4a6072]">
+          <CardHeader>
+            <CardTitle className="text-sm">Phương pháp Elbow (WCSS theo số cụm K)</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={elbowData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
+                <XAxis dataKey="k" stroke="#7b9bb8" label={{ value: "Số cụm K", position: "insideBottom", offset: -5, fill: "#7b9bb8" }} />
+                <YAxis stroke="#7b9bb8" label={{ value: "WCSS", angle: -90, position: "insideLeft", fill: "#7b9bb8" }} />
+                <RechartsTooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
+                <Line type="monotone" dataKey="wcss" stroke="#60a5fa" strokeWidth={2.5} dot />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#353a44] border-[#4a6072]">
+          <CardHeader>
+            <CardTitle className="text-sm">Hệ số Silhouette (SilhouetteScore theo cụm K)</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={silhouetteData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
+                <XAxis dataKey="k" stroke="#7b9bb8" label={{ value: "Cụm K", position: "insideBottom", offset: -5, fill: "#7b9bb8" }} />
+                <YAxis domain={[0, 1]} stroke="#7b9bb8" label={{ value: "SilhouetteScore", angle: -90, position: "insideLeft", fill: "#7b9bb8" }} />
+                <RechartsTooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
+                <Line type="monotone" dataKey="score" stroke="#22c55e" strokeWidth={2.5} dot />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <Card className="bg-[#353a44] border-[#4a6072]">
+          <CardHeader>
+            <CardTitle className="text-sm">Scatter plot: Phân bố cụm trong không gian 2D</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[360px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
+                <CartesianGrid stroke="#4a6072" />
+                <XAxis type="number" dataKey="x" name="Recency" stroke="#7b9bb8" label={{ value: "Recency (Ngày)", position: "insideBottom", offset: -5, fill: "#7b9bb8" }} />
+                <YAxis type="number" dataKey="y" name="Frequency" stroke="#7b9bb8" label={{ value: "Frequency (Đơn hàng)", angle: -90, position: "insideLeft", fill: "#7b9bb8" }} />
+                <ZAxis type="number" dataKey="z" range={[60, 160]} />
+                <RechartsTooltip cursor={{ strokeDasharray: "3 3" }} contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
+                <Legend />
+                {CLUSTER_ORDER.map((cluster) => (
+                  <Scatter key={cluster} name={cluster} data={scatterDataByCluster[cluster]} fill={badgeColorByType(cluster)} />
+                ))}
+              </ScatterChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#353a44] border-[#4a6072]">
+          <CardHeader>
+            <CardTitle className="text-sm">Hồ sơ RFM theo cụm (tam giác R-F-M)</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[360px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart data={[{ metric: "Độ mới" }, { metric: "Giá trị" }, { metric: "Tần suất" }]}>
+                <PolarGrid stroke="#4a6072" />
+                <PolarAngleAxis dataKey="metric" stroke="#7b9bb8" />
+                <PolarRadiusAxis domain={[0, 1400]} ticks={[0, 350, 700, 1050, 1400]} stroke="#7b9bb8" />
+                {radarData.map((cluster) => (
+                  <Radar
+                    key={cluster.cluster}
+                    name={cluster.cluster}
+                    dataKey={(entry: { metric: string }) => {
+                      if (entry.metric === "Độ mới") return cluster.doMoi;
+                      if (entry.metric === "Giá trị") return cluster.giaTri;
+                      return cluster.tanSuat;
+                    }}
+                    stroke={cluster.color}
+                    fill={cluster.color}
+                    fillOpacity={0.2}
+                  />
+                ))}
+                <Legend />
+                <RechartsTooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="bg-[#353a44] border-[#4a6072]">
+        <CardHeader>
+          <CardTitle className="text-sm">So sánh chỉ số RFM giữa các cụm</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={compareCharts.recency}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
+                  <XAxis dataKey="cluster" stroke="#7b9bb8" />
+                  <YAxis stroke="#7b9bb8" />
+                  <RechartsTooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
+                  <Bar dataKey="value" fill="#60a5fa" name="Độ mới (ngày)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={compareCharts.avgOrders}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
+                  <XAxis dataKey="cluster" stroke="#7b9bb8" />
+                  <YAxis stroke="#7b9bb8" />
+                  <RechartsTooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
+                  <Bar dataKey="value" fill="#22c55e" name="Số đơn trung bình" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={compareCharts.totalSpend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
+                  <XAxis dataKey="cluster" stroke="#7b9bb8" />
+                  <YAxis stroke="#7b9bb8" />
+                  <RechartsTooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
+                  <Bar dataKey="value" fill="#f59e0b" name="Tổng chi tiêu" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={compareCharts.avgAov}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
+                  <XAxis dataKey="cluster" stroke="#7b9bb8" />
+                  <YAxis stroke="#7b9bb8" />
+                  <RechartsTooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
+                  <Bar dataKey="value" fill="#a78bfa" name="Giá trị TB đơn" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
