@@ -97,19 +97,19 @@ export default function DeepAnalysis() {
   }, [streamData.heatmap]);
 
   return (
-    <div className="min-h-screen p-6 space-y-6 bg-[#1f2228] text-[#e8edf3]">
+    <div className="min-h-screen p-6 space-y-6 bg-[#f3f5f8] text-[#1f3c5a]">
       <div className="grid grid-cols-1 gap-6">
-        <Card className="bg-[#353a44] border-[#4a6072] text-[#e8edf3]">
+        <Card className="bg-white border-[#d8e2ee] text-[#1f3c5a]">
           <CardHeader>
             <CardTitle>Xu hướng đơn hàng theo ngày - Biến động số lượng đơn hàng 30 ngày gần nhất</CardTitle>
           </CardHeader>
           <CardContent className="h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={streamData.rolling_30_days.length > 0 ? streamData.rolling_30_days : streamData.daily_trend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
-                <XAxis dataKey="date" stroke="#7b9bb8" tick={{ fontSize: 11 }} />
-                <YAxis stroke="#7b9bb8" />
-                <Tooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#d9e5f2" />
+                <XAxis dataKey="date" stroke="#5f7c9c" tick={{ fontSize: 11 }} />
+                <YAxis stroke="#5f7c9c" />
+                <Tooltip contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #d8e2ee" }} />
                 <Bar dataKey="orders" fill="#60a5fa" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -118,34 +118,34 @@ export default function DeepAnalysis() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card className="bg-[#353a44] border-[#4a6072] text-[#e8edf3]">
+        <Card className="bg-white border-[#d8e2ee] text-[#1f3c5a]">
           <CardHeader>
             <CardTitle>Mua sắm theo giờ trong ngày</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={streamData.hourly_distribution}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
-                <XAxis dataKey="hour" stroke="#7b9bb8" tick={{ fontSize: 11 }} />
-                <YAxis stroke="#7b9bb8" />
-                <Tooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#d9e5f2" />
+                <XAxis dataKey="hour" stroke="#5f7c9c" tick={{ fontSize: 11 }} />
+                <YAxis stroke="#5f7c9c" />
+                <Tooltip contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #d8e2ee" }} />
                 <Line type="monotone" dataKey="orders" stroke="#22c55e" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#353a44] border-[#4a6072] text-[#e8edf3]">
+        <Card className="bg-white border-[#d8e2ee] text-[#1f3c5a]">
           <CardHeader>
             <CardTitle>Mua sắm theo thứ trong tuần</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={streamData.weekday_distribution}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
-                <XAxis dataKey="weekday" stroke="#7b9bb8" />
-                <YAxis stroke="#7b9bb8" />
-                <Tooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#d9e5f2" />
+                <XAxis dataKey="weekday" stroke="#5f7c9c" />
+                <YAxis stroke="#5f7c9c" />
+                <Tooltip contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #d8e2ee" }} />
                 <Bar dataKey="orders" fill="#a78bfa" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -153,14 +153,14 @@ export default function DeepAnalysis() {
         </Card>
       </div>
 
-      <Card className="bg-[#353a44] border-[#4a6072] text-[#e8edf3]">
+      <Card className="bg-white border-[#d8e2ee] text-[#1f3c5a]">
         <CardHeader>
           <CardTitle>Bản đồ nhiệt: Mật độ mua sắm (Thứ × Giờ)</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-auto">
             <div className="min-w-[840px] space-y-2">
-              <div className="grid grid-cols-[60px_repeat(24,minmax(24px,1fr))] gap-1 text-[10px] text-[#7b9bb8]">
+              <div className="grid grid-cols-[60px_repeat(24,minmax(24px,1fr))] gap-1 text-[10px] text-[#5f7c9c]">
                 <div />
                 {Array.from({ length: 24 }, (_, hour) => (
                   <div key={hour} className="text-center">{hour}</div>
@@ -169,13 +169,13 @@ export default function DeepAnalysis() {
 
               {heatMapRows.map((row) => (
                 <div key={row.weekday} className="grid grid-cols-[60px_repeat(24,minmax(24px,1fr))] gap-1 items-center">
-                  <div className="text-xs font-medium text-[#7b9bb8]">{row.weekday}</div>
+                  <div className="text-xs font-medium text-[#5f7c9c]">{row.weekday}</div>
                   {row.cells.map((value, idx) => {
                     const level = getHeatLevel(value, maxHeatValue);
                     return (
                       <div
                         key={`${row.weekday}-${idx}`}
-                        className="h-6 rounded-sm border border-[#1f2228]/30"
+                        className="h-6 rounded-sm border border-[#d8e2ee]"
                         style={{ backgroundColor: heatmapColors[level] }}
                         title={`${row.weekday} - ${idx}:00 | ${value} đơn`}
                       />
@@ -186,10 +186,10 @@ export default function DeepAnalysis() {
             </div>
           </div>
 
-          <div className="mt-4 flex items-center gap-3 text-xs text-[#7b9bb8]">
+          <div className="mt-4 flex items-center gap-3 text-xs text-[#5f7c9c]">
             <span>Mật độ thấp</span>
             {heatmapColors.map((color, idx) => (
-              <div key={idx} className="h-4 w-8 rounded-sm border border-[#1f2228]/40" style={{ backgroundColor: color }} />
+              <div key={idx} className="h-4 w-8 rounded-sm border border-[#d8e2ee]" style={{ backgroundColor: color }} />
             ))}
             <span>Mật độ cao</span>
           </div>

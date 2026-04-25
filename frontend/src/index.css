@@ -12,15 +12,15 @@
   --input: #e2e8f0;
   --ring: #4a6072;
 
-  /* Sidebar colors - Áp dụng chính cho Sidebar */
-  --sidebar: #1a1b1f;                    /* Nền sidebar tối */
-  --sidebar-foreground: #e8edf3;         /* Chữ chính trên sidebar */
-  --sidebar-primary: #4a6072;            /* Màu active / selected */
-  --sidebar-primary-foreground: #e8edf3; /* Chữ trên item active */
-  --sidebar-accent: #353a44;             /* Màu hover */
-  --sidebar-accent-foreground: #e8edf3;
-  --sidebar-border: #4a6072;             /* Đường viền */
-  --sidebar-ring: #7b9bb8;
+  /* Sidebar colors - Tông xanh dương nhạt */
+  --sidebar: #eaf3ff;
+  --sidebar-foreground: #1f3c5a;
+  --sidebar-primary: #cfe3ff;
+  --sidebar-primary-foreground: #1f3c5a;
+  --sidebar-accent: #dcecff;
+  --sidebar-accent-foreground: #1d4f8f;
+  --sidebar-border: #c4d9f2;
+  --sidebar-ring: #8bb8ec;
 }
 
 .dark {

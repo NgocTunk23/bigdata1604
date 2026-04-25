@@ -12,7 +12,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <SidebarProvider>
-        <div className="flex h-screen w-full overflow-hidden bg-[#e8edf3]">
+        <div className="flex h-screen w-full overflow-hidden bg-[#f3f5f8]">
           
           {/* Sidebar */}
           <AppSidebar />
@@ -21,23 +21,23 @@ export default function App() {
           <div className="flex-1 flex flex-col overflow-hidden">
             
             {/* Navbar/Header cố định */}
-            <header className="h-16 border-b border-[#4a6072]/30 bg-[#1a1b1f] px-6 flex items-center justify-between shrink-0 z-50">
+            <header className="h-16 border-b border-[#d8e2ee] bg-white px-6 flex items-center justify-between shrink-0 z-50">
               <div className="flex items-center gap-4">
-                <SidebarTrigger className="text-[#e8edf3] hover:bg-[#353a44] hover:text-white" />
-                <h1 className="text-xl font-semibold text-[#e8edf3]">
+                <SidebarTrigger className="text-[#355070] hover:bg-[#e9f1fb] hover:text-[#1d4f8f]" />
+                <h1 className="text-xl font-semibold text-[#1f3c5a]">
                   Big Data Retail Analytics
                 </h1>
               </div>
 
               {/* Phần bên phải Navbar (có thể thêm sau) */}
-              <div className="flex items-center gap-6 text-[#e8edf3]">
-                <div className="text-sm text-[#7b9bb8]">Ho Chi Minh City, VN</div>
+              <div className="flex items-center gap-6 text-[#355070]">
+                <div className="text-sm text-[#5f7c9c]">Ho Chi Minh City, VN</div>
                 {/* Thêm avatar, notification... sau này */}
               </div>
             </header>
 
             {/* Nội dung chính - Có scroll riêng */}
-            <main className="flex-1 overflow-auto bg-[#e8edf3]">
+            <main className="flex-1 overflow-auto bg-[#f3f5f8]">
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/recommendation" element={<Recommendation />} />

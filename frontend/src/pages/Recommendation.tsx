@@ -11,13 +11,10 @@ export default function Recommendation() {
   // --- DỮ LIỆU SẢN PHẨM ---
   const [stdProducts, setStdProducts] = useState<string[]>([]);
   const [supProducts, setSupProducts] = useState<string[]>([]);
-  const [loadingStdItems, setLoadingStdItems] = useState(false);
-  const [loadingSupItems, setLoadingSupItems] = useState(false);
 
   // --- STATE TIÊU CHUẨN (STANDARD) ---
   const [selectedStd, setSelectedStd] = useState<string[]>([]);
   const [searchStd, setSearchStd] = useState("");
-  const [stdStatus, setStdStatus] = useState("");
   const [stdResults, setStdResults] = useState<any[]>([]);
   const [loadingStd, setLoadingStd] = useState(false);
 
@@ -30,21 +27,16 @@ export default function Recommendation() {
   // Load sản phẩm ban đầu
   useEffect(() => {
     const fetchAll = async () => {
-      setLoadingStdItems(true); setLoadingSupItems(true);
-      try {
-        const [resStd, resSup] = await Promise.all([
-          fetch("http://localhost:8000/api/v1/products/standard"),
-          fetch("http://localhost:8000/api/v1/products/super")
-        ]);
-        
-        const dataStd = await resStd.json();
-        const dataSup = await resSup.json();
+      const [resStd, resSup] = await Promise.all([
+        fetch("http://localhost:8000/api/v1/products/standard"),
+        fetch("http://localhost:8000/api/v1/products/super")
+      ]);
+      
+      const dataStd = await resStd.json();
+      const dataSup = await resSup.json();
 
-        setStdProducts(dataStd.products || []);
-        setSupProducts(dataSup.products || []);
-      } finally {
-        setLoadingStdItems(false); setLoadingSupItems(false);
-      }
+      setStdProducts(dataStd.products || []);
+      setSupProducts(dataSup.products || []);
     };
     fetchAll();
   }, []);
@@ -94,17 +86,17 @@ export default function Recommendation() {
   };
 
   return (
-    <div className="min-h-screen p-6 space-y-10 bg-[#1f2228] text-[#e8edf3]">
+    <div className="min-h-screen p-6 space-y-10 bg-[#f3f5f8] text-[#1f3c5a]">
       
       {/* SECTION 1: TIÊU CHUẨN */}
       <div className="space-y-4">
-        <h2 className="text-green-500 font-bold flex items-center gap-2 px-2">
-          <ShoppingCart size={20}/> MÔ HÌNH TIÊU CHUẨN (REAL-TIME)
+        <h2 className="text-[#db2777] font-bold flex items-center gap-2 px-2">
+          <ShoppingCart size={20}/> MÔ HÌNH TIÊU CHUẨN
         </h2>
         
-        <Card className="bg-[#353a44] border-[#4a6072]">
-          <CardHeader className="border-b border-[#4a6072] pb-4">
-            <CardTitle className="text-lg flex items-center justify-between text-[#7b9bb8]">
+        <Card className="bg-white border-[#d8e2ee]">
+          <CardHeader className="border-b border-[#f1c8df] pb-4">
+            <CardTitle className="text-lg flex items-center justify-between text-[#b83280]">
               <span>🛒 Giỏ hàng Tiêu chuẩn</span>
               <span className="text-sm font-normal">Số lượng: {selectedStd.length}</span>
             </CardTitle>
@@ -112,13 +104,13 @@ export default function Recommendation() {
           <CardContent className="pt-6 space-y-6">
             <div className="space-y-2">
               <div className="flex items-center justify-between px-1">
-                <label className="text-xs uppercase text-[#7b9bb8] font-bold">Sản phẩm đã chọn</label>
+                <label className="text-xs uppercase text-[#b83280] font-bold">Sản phẩm đã chọn</label>
                 <button onClick={() => setSelectedStd([])} className="text-xs text-red-400 flex items-center gap-1 hover:underline"><Trash2 size={12}/> Xóa hết</button>
               </div>
-              <div className="min-h-[80px] p-4 border-2 border-dashed border-[#4a6072] rounded-lg bg-[#1f2228]/50 flex flex-wrap gap-2">
-                {selectedStd.length === 0 ? <p className="text-[#4a6072] text-sm italic w-full text-center py-4">Trống...</p> : 
+              <div className="min-h-[80px] p-4 border-2 border-dashed border-[#f1c8df] rounded-lg bg-[#fff8fc] flex flex-wrap gap-2">
+                {selectedStd.length === 0 ? <p className="text-[#c17cab] text-sm italic w-full text-center py-4">Trống...</p> : 
                   selectedStd.map(item => (
-                    <Badge key={item} className="bg-[#7b9bb8] text-[#1f2228] flex gap-1 items-center px-3 py-1">
+                    <Badge key={item} className="bg-[#fbcfe8] text-[#831843] flex gap-1 items-center px-3 py-1">
                       {item} <X size={14} className="cursor-pointer hover:text-red-600" onClick={(e) => removeItem(e, item, setSelectedStd)} />
                     </Badge>
                   ))
@@ -127,13 +119,13 @@ export default function Recommendation() {
             </div>
             <div className="space-y-3">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4a6072]" size={16} />
-                <Input placeholder="Tìm sản phẩm tiêu chuẩn..." className="bg-[#1f2228] border-[#4a6072] pl-10" value={searchStd} onChange={e => setSearchStd(e.target.value)} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#b06a97]" size={16} />
+                <Input placeholder="Tìm sản phẩm tiêu chuẩn..." className="bg-white border-[#f1c8df] text-[#1f3c5a] pl-10" value={searchStd} onChange={e => setSearchStd(e.target.value)} />
               </div>
-              <ScrollArea className="h-[150px] border border-[#4a6072] rounded-md p-2 bg-[#1f2228]/30">
+              <ScrollArea className="h-[150px] border border-[#f1c8df] rounded-md p-2 bg-[#fff8fc]">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {stdProducts.filter(p => p.toLowerCase().includes(searchStd.toLowerCase())).map(item => (
-                    <button key={item} onClick={() => !selectedStd.includes(item) && setSelectedStd([...selectedStd, item])} className="flex items-center justify-between px-3 py-2 text-sm text-green-400 bg-[#353a44] border border-[#4a6072] rounded hover:border-[#7b9bb8] transition-all">
+                    <button key={item} onClick={() => !selectedStd.includes(item) && setSelectedStd([...selectedStd, item])} className="flex items-center justify-between px-3 py-2 text-sm text-[#be185d] bg-white border border-[#f1c8df] rounded hover:border-[#db2777] transition-all">
                       <span className="truncate">{item}</span> <Plus size={14} />
                     </button>
                   ))}
@@ -144,25 +136,25 @@ export default function Recommendation() {
         </Card>
 
         {/* Kết quả Standard bên dưới ô chọn */}
-        <Card className="bg-[#353a44] border-[#4a6072] border-t-2 border-t-green-500 pt-0 pb-6">
-          <CardHeader className="bg-[#1f2228]/50 flex flex-row items-center justify-between py-4">
-            <CardTitle className="text-md text-green-400">
+        <Card className="bg-white border-[#d8e2ee] border-t-2 border-t-[#db2777] pt-0 pb-6">
+          <CardHeader className="bg-[#fff4fa] flex flex-row items-center justify-between py-4">
+            <CardTitle className="text-md text-[#be185d]">
               Kết quả gợi ý Standard
             </CardTitle>
 
-            <Button size="sm" onClick={analyzeStandard} className="bg-green-600 hover:bg-green-700 text-black font-bold" disabled={loadingStd}>
+            <Button size="sm" onClick={analyzeStandard} className="bg-[#db2777] hover:bg-[#be185d] text-white font-bold" disabled={loadingStd}>
               {loadingStd ? <Loader2 className="animate-spin" size={16}/> : "Phân tích"}
             </Button>
           </CardHeader>
 
           <CardContent className="p-0">
             <Table>
-              <TableHeader className="bg-[#1f2228]">
+              <TableHeader className="bg-[#fff8fc]">
                 <TableRow>
-                  <TableHead className = "text-green-400">Mã SP</TableHead>
-                  <TableHead className = "text-green-400">Tên SP</TableHead>
-                  <TableHead className = "text-green-400">Gợi ý</TableHead>
-                  <TableHead className="text-center text-green-400">Độ tin cậy (%)</TableHead>
+                  <TableHead className = "text-[#be185d]">Mã SP</TableHead>
+                  <TableHead className = "text-[#be185d]">Tên SP</TableHead>
+                  <TableHead className = "text-[#be185d]">Gợi ý</TableHead>
+                  <TableHead className="text-center text-[#be185d]">Độ tin cậy (%)</TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -176,12 +168,12 @@ export default function Recommendation() {
                 ) : (
                   stdResults.map((item, idx) => (
                     <TableRow key={idx}>
-                      <TableCell className="text-green-400 font-medium">{item.product_id}</TableCell>
-                      <TableCell className="text-green-400 font-medium">{item.product_name}</TableCell>
-                      <TableCell className="text-green-400">
+                      <TableCell className="text-[#be185d] font-medium">{item.product_id}</TableCell>
+                      <TableCell className="text-[#be185d] font-medium">{item.product_name}</TableCell>
+                      <TableCell className="text-[#be185d]">
                         {item.suggestion}
                       </TableCell>
-                      <TableCell className="text-center text-green-400">
+                      <TableCell className="text-center text-[#be185d]">
                         {item.confidence}%
                       </TableCell>
                     </TableRow>
@@ -193,31 +185,31 @@ export default function Recommendation() {
         </Card>
       </div>
 
-      <hr className="border-[#4a6072] opacity-30" />
+      <hr className="border-[#d8e2ee] opacity-70" />
 
       {/* SECTION 2: SUPER */}
       <div className="space-y-4">
-        <h2 className="text-yellow-500 font-bold flex items-center gap-2 px-2">
-          <Star size={20} fill="currentColor"/> MÔ HÌNH SUPER (AI RECOMMENDATION)
+        <h2 className="text-[#7e22ce] font-bold flex items-center gap-2 px-2">
+          <Star size={20} fill="currentColor"/> MÔ HÌNH SUPER
         </h2>
 
-        <Card className="bg-[#353a44] border-[#4a6072]">
-          <CardHeader className="border-b border-[#4a6072] pb-4">
-            <CardTitle className="text-lg flex items-center justify-between text-yellow-500/80">
-              <span>🌟 Giỏ hàng Super (Hàng hiếm)</span>
+        <Card className="bg-white border-[#d8e2ee]">
+          <CardHeader className="border-b border-[#dcc9f9] pb-4">
+            <CardTitle className="text-lg flex items-center justify-between text-[#7e22ce]/90">
+              <span>🌟 Giỏ hàng Super</span>
               <span className="text-sm font-normal">Số lượng: {selectedSup.length}</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
             <div className="space-y-2">
               <div className="flex items-center justify-between px-1">
-                <label className="text-xs uppercase text-[#7b9bb8] font-bold">Sản phẩm đã chọn (Super)</label>
+                <label className="text-xs uppercase text-[#7e22ce] font-bold">Sản phẩm đã chọn (Super)</label>
                 <button onClick={() => setSelectedSup([])} className="text-xs text-red-400 flex items-center gap-1 hover:underline"><Trash2 size={12}/> Xóa hết</button>
               </div>
-              <div className="min-h-[80px] p-4 border-2 border-dashed border-[#4a6072] rounded-lg bg-[#1f2228]/50 flex flex-wrap gap-2">
-                {selectedSup.length === 0 ? <p className="text-[#4a6072] text-sm italic w-full text-center py-4">Trống...</p> : 
+              <div className="min-h-[80px] p-4 border-2 border-dashed border-[#dcc9f9] rounded-lg bg-[#faf5ff] flex flex-wrap gap-2">
+                {selectedSup.length === 0 ? <p className="text-[#a78bca] text-sm italic w-full text-center py-4">Trống...</p> : 
                   selectedSup.map(item => (
-                    <Badge key={item} className="bg-yellow-600 text-black flex gap-1 items-center px-3 py-1">
+                    <Badge key={item} className="bg-[#e9d5ff] text-[#581c87] flex gap-1 items-center px-3 py-1">
                       {item} <X size={14} className="cursor-pointer hover:text-red-600" onClick={(e) => removeItem(e, item, setSelectedSup)} />
                     </Badge>
                   ))
@@ -226,13 +218,13 @@ export default function Recommendation() {
             </div>
             <div className="space-y-3">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4a6072]" size={16} />
-                <Input placeholder="Tìm sản phẩm đặc trưng..." className="bg-[#1f2228] border-[#4a6072] pl-10" value={searchSup} onChange={e => setSearchSup(e.target.value)} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8d70b3]" size={16} />
+                <Input placeholder="Tìm sản phẩm đặc trưng..." className="bg-white border-[#dcc9f9] text-[#1f3c5a] pl-10" value={searchSup} onChange={e => setSearchSup(e.target.value)} />
               </div>
-              <ScrollArea className="h-[150px] border border-[#4a6072] rounded-md p-2 bg-[#1f2228]/30">
+              <ScrollArea className="h-[150px] border border-[#dcc9f9] rounded-md p-2 bg-[#faf5ff]">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {supProducts.filter(p => p.toLowerCase().includes(searchSup.toLowerCase())).map(item => (
-                    <button key={item} onClick={() => !selectedSup.includes(item) && setSelectedSup([...selectedSup, item])} className="flex items-center justify-between px-3 py-2 text-sm text-yellow-500 bg-[#353a44] border border-[#4a6072] rounded hover:border-yellow-500 transition-all">
+                    <button key={item} onClick={() => !selectedSup.includes(item) && setSelectedSup([...selectedSup, item])} className="flex items-center justify-between px-3 py-2 text-sm text-[#7e22ce] bg-white border border-[#dcc9f9] rounded hover:border-[#7e22ce] transition-all">
                       <span className="truncate">{item}</span> <Plus size={14} />
                     </button>
                   ))}
@@ -243,42 +235,42 @@ export default function Recommendation() {
         </Card>
 
         {/* Kết quả Super bên dưới ô chọn */}
-        <Card className="bg-[#353a44] border-[#4a6072] border-t-2 border-t-yellow-500 pt-0 pb-6">
-          <CardHeader className="bg-[#1f2228]/50 flex flex-row items-center justify-between py-4">
-            <CardTitle className="text-md text-yellow-500 flex items-center gap-2">Kết quả Super Recommendation</CardTitle>
-            <Button size="sm" onClick={analyzeSuper} className="bg-yellow-600 hover:bg-yellow-700 text-black font-bold" disabled={loadingSuper}>
+        <Card className="bg-white border-[#d8e2ee] border-t-2 border-t-[#7e22ce] pt-0 pb-6">
+          <CardHeader className="bg-[#faf5ff] flex flex-row items-center justify-between py-4">
+            <CardTitle className="text-md text-[#7e22ce] flex items-center gap-2">Kết quả Super Recommendation</CardTitle>
+            <Button size="sm" onClick={analyzeSuper} className="bg-[#7e22ce] hover:bg-[#6b21a8] text-white font-bold" disabled={loadingSuper}>
               {loadingSuper ? <Loader2 className="animate-spin" size={16} /> : "Phân tích"}
             </Button>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
-              <TableHeader className="bg-[#1f2228]">
-                <TableRow className="border-[#4a6072]">
-                  <TableHead className="text-yellow-500/70">Đã chọn</TableHead>
-                  <TableHead className="text-yellow-500/70">Gợi ý</TableHead>
-                  <TableHead className="text-center text-yellow-500/70">Độ tin cậy (%)</TableHead>
-                  <TableHead className="text-right text-yellow-500/70">Tương quan (Lift)</TableHead>
+              <TableHeader className="bg-[#faf5ff]">
+                <TableRow className="border-[#dcc9f9]">
+                  <TableHead className="text-[#7e22ce]/80">Đã chọn</TableHead>
+                  <TableHead className="text-[#7e22ce]/80">Gợi ý</TableHead>
+                  <TableHead className="text-center text-[#7e22ce]/80">Độ tin cậy (%)</TableHead>
+                  <TableHead className="text-right text-[#7e22ce]/80">Tương quan (Lift)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {supResults.length === 0 ? (
-                  <TableRow><TableCell colSpan={4} className="text-center py-8 text-[#4a6072] italic">Chọn sản phẩm Super và nhấn Phân tích</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4} className="text-center py-8 text-[#8d70b3] italic">Chọn sản phẩm Super và nhấn Phân tích</TableCell></TableRow>
                 ) : (
                   supResults.map((item, idx) => (
-                    <TableRow key={idx} className="border-[#4a6072] hover:bg-[#1f2228]/30">
-                      <TableCell className="text-yellow-400 font-medium">
+                    <TableRow key={idx} className="border-[#dcc9f9] hover:bg-[#faf5ff]">
+                      <TableCell className="text-[#7e22ce] font-medium">
                         {item.selected_items}
                       </TableCell>
 
-                      <TableCell className="text-yellow-400 font-medium">
+                      <TableCell className="text-[#7e22ce] font-medium">
                         {item.suggestion}
                       </TableCell>
 
-                      <TableCell className="text-center text-yellow-400 font-mono">
+                      <TableCell className="text-center text-[#7e22ce] font-mono">
                         {item.confidence}%
                       </TableCell>
 
-                      <TableCell className="text-right text-yellow-400 font-mono">
+                      <TableCell className="text-right text-[#7e22ce] font-mono">
                         {item.lift}
                       </TableCell>
                     </TableRow>

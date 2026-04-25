@@ -78,6 +78,13 @@ export default function Dashboard() {
     aov: persisted?.realtimeAov ?? 0,
   });
   const MAX_REALTIME_ROWS = 300;
+  const metricCardStyles: Record<string, string> = {
+    "Giao Dịch": "bg-[#eaf3ff] border-[#c8dcf5]",
+    "Doanh thu": "bg-[#eaf9ef] border-[#c5ebd0]",
+    "Khách hàng": "bg-[#e8f9fb] border-[#bfeff4]",
+    AOV: "bg-[#fff4e8] border-[#ffdcbc]",
+    "Sản phẩm": "bg-[#f3edff] border-[#d8c9fb]",
+  };
 
   const formatGrowth = (current: number, previous: number) => {
     if (previous <= 0) {
@@ -115,14 +122,14 @@ export default function Dashboard() {
     axios.get("http://localhost:8000/api/v1/dashboard/metrics")
       .catch(err => console.error("Lỗi lấy metrics ban đầu:", err));
 
-    // 2. Kết nối WebSocket để lấy dữ liệu Streaming
+    // Kết nối WebSocket để lấy dữ liệu Streaming
     const socket = new WebSocket("ws://localhost:8000/ws/dashboard");
 
     socket.onmessage = (event) => {
       const response = JSON.parse(event.data);
       const { topic, data } = response;
 
-      // Xử lý TOP PRODUCTS (Cập nhật cột ngang)
+      // Xử lý TOP PRODUCTS
       if (topic === 'top_products_stream') {
         // Lưu vào object để cập nhật số lượng mới nhất
         topProductsRef.current[data.product] = data.total_sold;
@@ -136,7 +143,7 @@ export default function Dashboard() {
         setTopProducts(sorted);
       }
 
-      // Xử lý GIAO DỊCH REAL-TIME (Cập nhật đường Line)
+      // Xử lý GIAO DỊCH REAL-TIME
       if (topic === 'recommendation_stream') {
         const txnNo = String(data?.TransactionNo ?? "").trim();
         if (!txnNo || seenTransactionsRef.current.has(txnNo)) return;
@@ -236,7 +243,7 @@ export default function Dashboard() {
   ]);
 
   return (
-    <div className="min-h-screen p-6 space-y-6 bg-[#1f2228] text-[#e8edf3]">
+    <div className="min-h-screen p-6 space-y-6 bg-[#f3f5f8] text-[#1f3c5a]">
       
       {/* SECTION 1: METRIC CARDS REALTIME */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
@@ -245,30 +252,35 @@ export default function Dashboard() {
           value={realtimeTxCount.toLocaleString()} 
           icon={<ShoppingBag className="text-blue-400" />} 
           growth={growth.tx}
+          className={metricCardStyles["Giao Dịch"]}
         />
         <MetricCard 
           title="Doanh thu" 
           value={realtimeRevenue.toLocaleString("vi-VN", { maximumFractionDigits: 0 })} 
           icon={<DollarSign className="text-emerald-400" />}
           growth={growth.revenue}
+          className={metricCardStyles["Doanh thu"]}
         />
         <MetricCard 
           title="Khách hàng" 
           value={realtimeCustomerCount.toLocaleString()} 
           icon={<Users className="text-cyan-400" />}
           growth={growth.customers}
+          className={metricCardStyles["Khách hàng"]}
         />
         <MetricCard 
           title="AOV" 
           value={realtimeAov.toLocaleString("vi-VN", { maximumFractionDigits: 2 })} 
           icon={<Wallet className="text-amber-400" />}
           growth={growth.aov}
+          className={metricCardStyles.AOV}
         />
         <MetricCard 
           title="Sản phẩm" 
           value={realtimeProductCount.toLocaleString()} 
           icon={<Package className="text-violet-400" />}
           growth={growth.products}
+          className={metricCardStyles["Sản phẩm"]}
         />
       </div>
 
@@ -276,7 +288,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         
         {/* Biểu đồ ngang cập nhật từ Kafka 'top_products_stream' */}
-        <Card className="bg-[#353a44] border-[#4a6072] text-[#e8edf3]">
+        <Card className="bg-white border-[#d8e2ee] text-[#1f3c5a]">
           <CardHeader>
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Activity className="h-4 w-4 text-blue-400" /> Top 10 Sản Phẩm (Kafka Live)
@@ -285,10 +297,10 @@ export default function Dashboard() {
           <CardContent className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topProducts} layout="vertical" margin={{ left: 40, right: 30 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" horizontal={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#d9e5f2" horizontal={false} />
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" stroke="#7b9bb8" fontSize={10} width={120} />
-                <Tooltip contentStyle={{ backgroundColor: '#1f2228', border: '1px solid #4a6072' }} />
+                <YAxis dataKey="name" type="category" stroke="#5f7c9c" fontSize={10} width={120} />
+                <Tooltip contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #d8e2ee' }} />
                 <Bar dataKey="value" fill="#60a5fa" radius={[0, 4, 4, 0]} barSize={20} />
               </BarChart>
             </ResponsiveContainer>
@@ -298,34 +310,34 @@ export default function Dashboard() {
       </div>
 
       {/* SECTION 3: BẢNG GIAO DỊCH REALTIME */}
-      <Card className="bg-[#353a44] border-[#4a6072] text-[#e8edf3]">
+      <Card className="bg-white border-[#d8e2ee] text-[#1f3c5a]">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium">
             Danh sách giao dịch realtime
           </CardTitle>
-          <span className="text-[10px] text-[#7b9bb8] uppercase">Mới nhất ở trên cùng</span>
+          <span className="text-[10px] text-[#5f7c9c] uppercase">Mới nhất ở trên cùng</span>
         </CardHeader>
         <CardContent className="p-0">
           <div className="max-h-[360px] overflow-y-auto">
             <Table>
-              <TableHeader className="bg-[#1f2228]/80">
-                <TableRow className="border-[#4a6072]">
-                  <TableHead className="text-[#7b9bb8] text-[11px] uppercase">Mã GD</TableHead>
-                  <TableHead className="text-[#7b9bb8] text-[11px] uppercase">Mã KH</TableHead>
-                  <TableHead className="text-[#7b9bb8] text-[11px] uppercase">Giỏ hàng</TableHead>
+              <TableHeader className="bg-[#f6f9fc]">
+                <TableRow className="border-[#d8e2ee]">
+                  <TableHead className="text-[#dda94b] text-[11px] uppercase">Mã GD</TableHead>
+                  <TableHead className="text-[#1f8f5f] text-[11px] uppercase">Mã KH</TableHead>
+                  <TableHead className="text-[#5f7c9c] text-[11px] uppercase">Giỏ hàng</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {realtimeTxRows.map((row) => (
-                  <TableRow key={`${row.transactionNo}-${row.customerNo}`} className="border-[#4a6072] hover:bg-[#4a6072]/40 transition-colors">
-                    <TableCell className="font-mono text-[11px] text-[#7b9bb8]">{row.transactionNo}</TableCell>
-                    <TableCell className="font-medium text-sm text-green-400">{row.customerNo || "-"}</TableCell>
-                    <TableCell className="text-sm text-[#e8edf3]">{row.items || "-"}</TableCell>
+                  <TableRow key={`${row.transactionNo}-${row.customerNo}`} className="border-[#d8e2ee] hover:bg-[#f3f8ff] transition-colors">
+                    <TableCell className="font-medium text-sm text-[#dda94b]">{row.transactionNo}</TableCell>
+                    <TableCell className="font-medium text-sm text-[#1f8f5f]">{row.customerNo || "-"}</TableCell>
+                    <TableCell className="text-sm text-[#1f3c5a]">{row.items || "-"}</TableCell>
                   </TableRow>
                 ))}
                 {realtimeTxRows.length === 0 && (
-                  <TableRow className="border-[#4a6072]">
-                    <TableCell colSpan={3} className="text-center text-[#7b9bb8] py-6">
+                  <TableRow className="border-[#d8e2ee]">
+                    <TableCell colSpan={3} className="text-center text-[#5f7c9c] py-6">
                       Chua co giao dich realtime
                     </TableCell>
                   </TableRow>
@@ -339,16 +351,16 @@ export default function Dashboard() {
   );
 }
 
-function MetricCard({ title, value, icon, growth }: any) {
+function MetricCard({ title, value, icon, growth, className = "" }: any) {
   return (
-    <Card className="bg-[#353a44] border-[#4a6072] text-[#e8edf3]">
+    <Card className={`text-[#1f3c5a] ${className}`}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-[10px] font-bold text-[#7b9bb8] uppercase tracking-wider">{title}</CardTitle>
+        <CardTitle className="text-[10px] font-bold text-[#5f7c9c] uppercase tracking-wider">{title}</CardTitle>
         {icon}
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>
-        <div className="text-xs text-[#7b9bb8] mt-1">Tăng trưởng: <span className="text-[#e8edf3]">{growth}</span></div>
+        <div className="text-xs text-[#5f7c9c] mt-1">Tăng trưởng: <span className="text-[#1f3c5a]">{growth}</span></div>
       </CardContent>
     </Card>
   );

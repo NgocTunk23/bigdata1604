@@ -48,10 +48,10 @@ const MAX_REALTIME_ROWS = 500;
 const CLUSTER_ORDER = ["VIP", "Potential", "Risk", "Lost"] as const;
 
 const SEGMENT_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  VIP: { label: "VIP", color: "#fbbf24", icon: <Crown className="text-yellow-400" /> },
-  Potential: { label: "Tiềm năng", color: "#05df72", icon: <Star className="text-green-400" /> },
-  Risk: { label: "Nguy cơ", color: "#ef5350", icon: <AlertTriangle className="text-red-400" /> },
-  Lost: { label: "Vãng lai", color: "#60a5fa", icon: <Ghost className="text-blue-400" /> },
+  VIP:        { label: "Thân thiết",color: "#f5e61e", icon: <Crown          className="text-[#f5e61e]" /> },
+  Potential:  { label: "Tiềm năng", color: "#05df72", icon: <Star           className="text-[#05df72]" /> },
+  Risk:       { label: "Nguy cơ",   color: "#ef5350", icon: <AlertTriangle  className="text-[#ef5350]" /> },
+  Lost:       { label: "Vãng lai",  color: "#60a5fa", icon: <Ghost          className="text-[#60a5fa]" /> },
 };
 
 export default function Clustering() {
@@ -117,8 +117,8 @@ export default function Clustering() {
         label: meta.label,
         color: meta.color,
         icon: meta.icon,
-        recency: `${segment.avg_recency_days.toFixed(1)} ngay`,
-        orders: `${Math.round(segment.avg_orders)} don`,
+        recency: `${segment.avg_recency_days.toFixed(1)} ngày`,
+        orders: `${Math.round(segment.avg_orders)} đơn`,
         aov: `${segment.avg_aov.toLocaleString("en-US", { maximumFractionDigits: 0 })}k`,
       };
     });
@@ -130,16 +130,16 @@ export default function Clustering() {
   );
 
   const badgeColorByType = (type: string) => {
-    if (type === "VIP") return "#fbbf24";
+    if (type === "VIP") return "#f5e61e";
     if (type === "Potential") return "#05df72";
     if (type === "Risk") return "#ef5350";
     if (type === "Lost") return "#60a5fa";
-    return "#7b9bb8";
+    return "#64748b";
   };
 
   const parseRecency = (value: string) => {
     if (!value) return 0;
-    if (value.toLowerCase().includes("vua xong")) return 0;
+    if (value.toLowerCase().includes("vừa xong")) return 0;
     const matched = value.match(/\d+(\.\d+)?/);
     return matched ? Number(matched[0]) : 0;
   };
@@ -212,12 +212,12 @@ export default function Clustering() {
   }, [segmentStats]);
 
   return (
-    <div className="min-h-screen p-6 space-y-6 bg-[#1f2228] text-[#e8edf3]">
+    <div className="min-h-screen p-6 space-y-6 bg-[#f3f5f8] text-slate-900">
       
-      {/* SECTION 1: 4 NHÓM KHÁCH HÀNG (Mỗi thẻ 1 nhóm) */}
+      {/* SECTION 1: 4 NHÓM KHÁCH HÀNG */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {uiStats.map((segment) => (
-          <Card key={segment.type} className="bg-[#353a44] border-[#4a6072] relative overflow-hidden group hover:border-[#7b9bb8] transition-colors">
+          <Card key={segment.type} className="bg-[#ffffff] border-slate-200 relative overflow-hidden group hover:shadow-md transition-all">
             <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-100 transition-opacity">
               {segment.icon}
             </div>
@@ -227,17 +227,17 @@ export default function Clustering() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex justify-between items-center border-b border-[#4a6072] pb-1">
-                <span className="text-[11px] text-[#7b9bb8]">Recency:</span>
-                <span className="text-sm font-semibold text-green-400">{segment.recency}</span>
+              <div className="flex justify-between items-center border-b border-slate-100 pb-1">
+                <span className="text-[11px] text-slate-500">Recency:</span>
+                <span className="text-sm font-semibold text-emerald-600">{segment.recency}</span>
               </div>
-              <div className="flex justify-between items-center border-b border-[#4a6072] pb-1">
-                <span className="text-[11px] text-[#7b9bb8]">Tổng đơn:</span>
-                <span className="text-sm font-semibold text-blue-400">{segment.orders}</span>
+              <div className="flex justify-between items-center border-b border-slate-100 pb-1">
+                <span className="text-[11px] text-slate-500">Tổng đơn:</span>
+                <span className="text-sm font-semibold text-blue-600">{segment.orders}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-[11px] text-[#7b9bb8]">AOV (TB):</span>
-                <span className="text-sm font-bold text-yellow-400">{segment.aov}</span>
+                <span className="text-[11px] text-slate-500">AOV (TB):</span>
+                <span className="text-sm font-bold text-amber-600">{segment.aov}</span>
               </div>
             </CardContent>
           </Card>
@@ -245,32 +245,32 @@ export default function Clustering() {
       </div>
 
       {/* SECTION 2: BIỂU ĐỒ TRÒN & BẢNG GIÁM SÁT */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         
-        {/* Biểu đồ tròn Phân bổ (1/3 chiều rộng) */}
-        <Card className="bg-[#353a44] border-[#4a6072] flex flex-col">
+        {/* Biểu đồ tròn Phân bổ - Chiếm 2/5 chiều rộng (To hơn trước) */}
+        <Card className="lg:col-span-2 bg-[#ffffff] border-slate-200 flex flex-col shadow-sm">
           <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Activity size={16} className="text-[#7b9bb8]" /> Tỷ lệ Phân bổ
+            <CardTitle className="text-sm flex items-center gap-2 text-slate-700">
+              <Activity size={16} className="text-slate-400" /> Tỷ lệ Phân bổ
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 min-h-[300px]">
+          <CardContent className="flex-1 min-h-[350px]"> {/* Tăng min-h để cân xứng với ô to */}
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={pieData}
-                  innerRadius={60}
-                  outerRadius={80}
+                  innerRadius={50} // Giảm từ 60 xuống 50 để dày hơn
+                  outerRadius={100} // Tăng từ 80 lên 100 để to hơn
                   paddingAngle={5}
                   dataKey="value"
                 >
                   {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                    <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
                   ))}
                 </Pie>
                 <RechartsTooltip 
-                  contentStyle={{ backgroundColor: '#1f2228', border: '1px solid #4a6072', borderRadius: '8px' }}
-                  itemStyle={{ color: '#e8edf3' }}
+                  contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                  itemStyle={{ color: '#0f172a' }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
               </PieChart>
@@ -278,54 +278,52 @@ export default function Clustering() {
           </CardContent>
         </Card>
 
-        {/* Bảng Giám sát Real-time (2/3 chiều rộng) */}
-        <Card className="lg:col-span-2 bg-[#353a44] border-[#4a6072]">
+        {/* Bảng Giám sát Real-time - Chiếm 3/5 chiều rộng (Bé lại) */}
+        <Card className="lg:col-span-3 bg-[#ffffff] border-slate-200 shadow-sm overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm flex items-center gap-2 text-[#e8edf3]">
+            <CardTitle className="text-sm flex items-center gap-2 text-slate-800">
               Giám sát phân loại Real-time
             </CardTitle>
-            <div className="flex items-center gap-2">
-              <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-              <span className="text-[10px] text-[#7b9bb8] uppercase">Kafka Stream Active</span>
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-[10px] text-slate-400 uppercase font-medium">Kafka Active</span>
             </div>
           </CardHeader>
           <CardContent className="p-0">
             <div className="max-h-[420px] overflow-y-auto">
             <Table>
-              <TableHeader className="bg-[#1f2228]/80">
-                <TableRow className="border-[#4a6072]">
-                  <TableHead className="text-[#7b9bb8] text-[11px] uppercase">Mã GD</TableHead>
-                  <TableHead className="text-[#7b9bb8] text-[11px] uppercase">Mã KH</TableHead>
-                  <TableHead className="text-[#7b9bb8] text-[11px] uppercase text-right">Chi tiêu</TableHead>
-                  <TableHead className="text-[#7b9bb8] text-[11px] uppercase text-center">Tần suất</TableHead>
-                  <TableHead className="text-[#7b9bb8] text-[11px] uppercase text-center">Độ trễ</TableHead>
-                  <TableHead className="text-[#7b9bb8] text-[11px] uppercase text-right">Phân loại</TableHead>
+              <TableHeader className="bg-slate-50">
+                <TableRow className="border-slate-200">
+                  <TableHead className="text-slate-500 text-[11px] uppercase w-20">Mã GD</TableHead>
+                  {/* Thu hẹp cột Mã KH */}
+                  <TableHead className="text-slate-500 text-[11px] uppercase w-24">Mã KH</TableHead>
+                  <TableHead className="text-slate-500 text-[11px] uppercase text-right">Chi tiêu</TableHead>
+                  <TableHead className="text-slate-500 text-[11px] uppercase text-center">Tần suất</TableHead>
+                  <TableHead className="text-slate-500 text-[11px] uppercase text-center">Độ trễ</TableHead>
+                  {/* Thu hẹp cột Phân loại */}
+                  <TableHead className="text-slate-500 text-[11px] uppercase text-right w-24">Loại</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {realtimeRows.map((row) => {
                   const color = badgeColorByType(row.type);
                   return (
-                  <TableRow key={`${row.id}-${row.cid}`} className="border-[#4a6072] hover:bg-[#4a6072]/40 transition-colors">
-                    <TableCell className="font-mono text-[11px] text-[#7b9bb8]">{row.id}</TableCell>
-                    <TableCell className="font-medium text-sm text-green-400">{row.cid}</TableCell>
-                    <TableCell className="text-right font-bold text-yellow-400">{row.spend}</TableCell>
-                    <TableCell className="text-center text-sm text-blue-400">{row.freq} đơn</TableCell>
-                    <TableCell className="text-center text-xs text-[#7b9bb8]">{row.rec}</TableCell>
+                  <TableRow key={`${row.id}-${row.cid}`} className="border-slate-100 hover:bg-slate-50 transition-colors">
+                    <TableCell className="font-mono text-[11px] text-slate-400 truncate max-w-[80px]">{row.id}</TableCell>
+                    <TableCell className="font-medium text-sm text-slate-700 whitespace-nowrap">{row.cid}</TableCell>
+                    <TableCell className="text-right font-bold text-emerald-600">{row.spend}</TableCell>
+                    <TableCell className="text-center text-sm text-blue-600 whitespace-nowrap">{row.freq} đơn</TableCell>
+                    <TableCell className="text-center text-xs text-slate-400">{row.rec}</TableCell>
                     <TableCell className="text-right">
-                      <Badge style={{ backgroundColor: `${color}20`, color, border: `1px solid ${color}40` }}>
+                      <Badge 
+                        className="px-2 py-0 text-[10px] whitespace-nowrap"
+                        style={{ backgroundColor: `${color}15`, color, border: `1px solid ${color}30` }}
+                      >
                         {row.type}
                       </Badge>
                     </TableCell>
                   </TableRow>
                 )})}
-                {realtimeRows.length === 0 && (
-                  <TableRow className="border-[#4a6072]">
-                    <TableCell colSpan={6} className="text-center text-[#7b9bb8] py-6">
-                      Chua co du lieu realtime
-                    </TableCell>
-                  </TableRow>
-                )}
               </TableBody>
             </Table>
             </div>
@@ -335,35 +333,35 @@ export default function Clustering() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card className="bg-[#353a44] border-[#4a6072]">
+        <Card className="bg-[#ffffff] border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-sm">Phương pháp Elbow (WCSS theo số cụm K)</CardTitle>
+            <CardTitle className="text-sm text-slate-700">Phương pháp Elbow (WCSS theo số cụm K)</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={elbowData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
-                <XAxis dataKey="k" stroke="#7b9bb8" label={{ value: "Số cụm K", position: "insideBottom", offset: -5, fill: "#7b9bb8" }} />
-                <YAxis stroke="#7b9bb8" label={{ value: "WCSS", angle: -90, position: "insideLeft", fill: "#7b9bb8" }} />
-                <RechartsTooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
-                <Line type="monotone" dataKey="wcss" stroke="#60a5fa" strokeWidth={2.5} dot />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="k" stroke="#64748b" fontSize={12} label={{ value: "Số cụm K", position: "insideBottom", offset: -5, fill: "#64748b" }} />
+                <YAxis stroke="#64748b" fontSize={12} label={{ value: "WCSS", angle: -90, position: "insideLeft", fill: "#64748b" }} />
+                <RechartsTooltip contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }} />
+                <Line type="monotone" dataKey="wcss" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#353a44] border-[#4a6072]">
+        <Card className="bg-[#ffffff] border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-sm">Hệ số Silhouette (SilhouetteScore theo cụm K)</CardTitle>
+            <CardTitle className="text-sm text-slate-700">Hệ số Silhouette (SilhouetteScore theo cụm K)</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={silhouetteData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
-                <XAxis dataKey="k" stroke="#7b9bb8" label={{ value: "Cụm K", position: "insideBottom", offset: -5, fill: "#7b9bb8" }} />
-                <YAxis domain={[0, 1]} stroke="#7b9bb8" label={{ value: "SilhouetteScore", angle: -90, position: "insideLeft", fill: "#7b9bb8" }} />
-                <RechartsTooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
-                <Line type="monotone" dataKey="score" stroke="#22c55e" strokeWidth={2.5} dot />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="k" stroke="#64748b" fontSize={12} label={{ value: "Cụm K", position: "insideBottom", offset: -5, fill: "#64748b" }} />
+                <YAxis domain={[0, 1]} stroke="#64748b" fontSize={12} label={{ value: "SilhouetteScore", angle: -90, position: "insideLeft", fill: "#64748b" }} />
+                <RechartsTooltip contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }} />
+                <Line type="monotone" dataKey="score" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -371,18 +369,18 @@ export default function Clustering() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card className="bg-[#353a44] border-[#4a6072]">
+        <Card className="bg-[#ffffff] border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-sm">Scatter plot: Phân bố cụm trong không gian 2D</CardTitle>
+            <CardTitle className="text-sm text-slate-700">Scatter plot: Phân bố cụm trong không gian 2D</CardTitle>
           </CardHeader>
           <CardContent className="h-[360px]">
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
-                <CartesianGrid stroke="#4a6072" />
-                <XAxis type="number" dataKey="x" name="Recency" stroke="#7b9bb8" label={{ value: "Recency (Ngày)", position: "insideBottom", offset: -5, fill: "#7b9bb8" }} />
-                <YAxis type="number" dataKey="y" name="Frequency" stroke="#7b9bb8" label={{ value: "Frequency (Đơn hàng)", angle: -90, position: "insideLeft", fill: "#7b9bb8" }} />
+                <CartesianGrid stroke="#e2e8f0" />
+                <XAxis type="number" dataKey="x" name="Recency" stroke="#64748b" label={{ value: "Recency (Ngày)", position: "insideBottom", offset: -5, fill: "#64748b" }} />
+                <YAxis type="number" dataKey="y" name="Frequency" stroke="#64748b" label={{ value: "Frequency (Đơn hàng)", angle: -90, position: "insideLeft", fill: "#64748b" }} />
                 <ZAxis type="number" dataKey="z" range={[60, 160]} />
-                <RechartsTooltip cursor={{ strokeDasharray: "3 3" }} contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
+                <RechartsTooltip cursor={{ strokeDasharray: "3 3" }} contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }} />
                 <Legend />
                 {CLUSTER_ORDER.map((cluster) => (
                   <Scatter key={cluster} name={cluster} data={scatterDataByCluster[cluster]} fill={badgeColorByType(cluster)} />
@@ -392,16 +390,16 @@ export default function Clustering() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#353a44] border-[#4a6072]">
+        <Card className="bg-[#ffffff] border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-sm">Hồ sơ RFM theo cụm (tam giác R-F-M)</CardTitle>
+            <CardTitle className="text-sm text-slate-700">Hồ sơ RFM theo cụm (tam giác R-F-M)</CardTitle>
           </CardHeader>
           <CardContent className="h-[360px]">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={[{ metric: "Độ mới" }, { metric: "Giá trị" }, { metric: "Tần suất" }]}>
-                <PolarGrid stroke="#4a6072" />
-                <PolarAngleAxis dataKey="metric" stroke="#7b9bb8" />
-                <PolarRadiusAxis domain={[0, 1400]} ticks={[0, 350, 700, 1050, 1400]} stroke="#7b9bb8" />
+                <PolarGrid stroke="#e2e8f0" />
+                <PolarAngleAxis dataKey="metric" stroke="#64748b" fontSize={12} />
+                <PolarRadiusAxis domain={[0, 1400]} ticks={[0, 350, 700, 1050, 1400]} stroke="#e2e8f0" fontSize={10} />
                 {radarData.map((cluster) => (
                   <Radar
                     key={cluster.cluster}
@@ -413,68 +411,91 @@ export default function Clustering() {
                     }}
                     stroke={cluster.color}
                     fill={cluster.color}
-                    fillOpacity={0.2}
+                    fillOpacity={0.15}
                   />
                 ))}
                 <Legend />
-                <RechartsTooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
+                <RechartsTooltip contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }} />
               </RadarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="bg-[#353a44] border-[#4a6072]">
-        <CardHeader>
-          <CardTitle className="text-sm">So sánh chỉ số RFM giữa các cụm</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <div className="h-[260px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={compareCharts.recency}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
-                  <XAxis dataKey="cluster" stroke="#7b9bb8" />
-                  <YAxis stroke="#7b9bb8" />
-                  <RechartsTooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
-                  <Bar dataKey="value" fill="#60a5fa" name="Độ mới (ngày)" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="h-[260px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={compareCharts.avgOrders}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
-                  <XAxis dataKey="cluster" stroke="#7b9bb8" />
-                  <YAxis stroke="#7b9bb8" />
-                  <RechartsTooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
-                  <Bar dataKey="value" fill="#22c55e" name="Số đơn trung bình" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="h-[260px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={compareCharts.totalSpend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
-                  <XAxis dataKey="cluster" stroke="#7b9bb8" />
-                  <YAxis stroke="#7b9bb8" />
-                  <RechartsTooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
-                  <Bar dataKey="value" fill="#f59e0b" name="Tổng chi tiêu" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="h-[260px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={compareCharts.avgAov}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#4a6072" />
-                  <XAxis dataKey="cluster" stroke="#7b9bb8" />
-                  <YAxis stroke="#7b9bb8" />
-                  <RechartsTooltip contentStyle={{ backgroundColor: "#1f2228", border: "1px solid #4a6072" }} />
-                  <Bar dataKey="value" fill="#a78bfa" name="Giá trị TB đơn" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+      <Card className="bg-[#ffffff] border-slate-200 shadow-sm">
+      <CardHeader>
+        <CardTitle className="text-sm text-slate-700">So sánh chỉ số RFM giữa các cụm</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {/* 1. Recency Chart */}
+          <div className="h-[260px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={compareCharts.recency}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="cluster" stroke="#64748b" fontSize={12} />
+                <YAxis stroke="#64748b" fontSize={12} />
+                <RechartsTooltip contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }} />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]} name="Độ mới (ngày)">
+                  {compareCharts.recency.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={badgeColorByType(entry.cluster)} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
+
+          {/* 2. Avg Orders Chart */}
+          <div className="h-[260px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={compareCharts.avgOrders}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="cluster" stroke="#64748b" fontSize={12} />
+                <YAxis stroke="#64748b" fontSize={12} />
+                <RechartsTooltip contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }} />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]} name="Số đơn trung bình">
+                  {compareCharts.avgOrders.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={badgeColorByType(entry.cluster)} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* 3. Total Spend Chart */}
+          <div className="h-[260px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={compareCharts.totalSpend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="cluster" stroke="#64748b" fontSize={12} />
+                <YAxis stroke="#64748b" fontSize={12} />
+                <RechartsTooltip contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }} />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]} name="Tổng chi tiêu">
+                  {compareCharts.totalSpend.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={badgeColorByType(entry.cluster)} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* 4. Avg AOV Chart */}
+          <div className="h-[260px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={compareCharts.avgAov}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="cluster" stroke="#64748b" fontSize={12} />
+                <YAxis stroke="#64748b" fontSize={12} />
+                <RechartsTooltip contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0" }} />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]} name="Giá trị TB đơn">
+                  {compareCharts.avgAov.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={badgeColorByType(entry.cluster)} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
         </CardContent>
       </Card>
     </div>

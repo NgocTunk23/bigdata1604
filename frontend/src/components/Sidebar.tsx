@@ -22,29 +22,46 @@ export function AppSidebar() {
   const location = useLocation();
 
   return (
-    <Sidebar>
+    <Sidebar className="border-r">
       <SidebarContent>
         <SidebarGroup>
-          <div className="p-4 font-bold text-2xl text-primary">
-            Retail Analytics
+
+          {/* Title */}
+          <div className="px-4 py-5">
+            <h1 className="text-2xl font-bold text-primary tracking-tight">
+              Retail Analytics
+            </h1>
           </div>
 
+          {/* Divider */}
+          <div className="mx-8 mb-6 h-px bg-border" />
+
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="px-2 space-y-2">
               {items.map((item) => {
                 const isActive = location.pathname === item.url;
 
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      isActive={isActive}
-                      onClick={() => {}} // nếu cần
+                    <SidebarMenuButton
+                      className={`
+                        h-12 rounded-xl transition-all
+                        ${isActive 
+                          ? "bg-blue-400 text-white shadow-md scale-[1.02]" 
+                          : "hover:bg-muted hover:scale-[1.01]"
+                        }
+                      `}
                     >
                       <Link 
                         to={item.url} 
-                        className="flex w-full items-center gap-3"
+                        className="flex items-center gap-4 px-4 text-base font-medium"
                       >
-                        <item.icon className="h-4 w-4" />
+                        <item.icon 
+                          className={`
+                            h-5 w-5 
+                            ${isActive ? "text-primary-foreground" : "text-muted-foreground"}
+                          `} 
+                        />
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
@@ -53,6 +70,7 @@ export function AppSidebar() {
               })}
             </SidebarMenu>
           </SidebarGroupContent>
+
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
