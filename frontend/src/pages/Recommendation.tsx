@@ -6,8 +6,15 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, ShoppingCart, Star, X, Plus, Trash2, Loader2 } from "lucide-react";
+import { getProductTranslation } from "../lib/translationUtils";
 
 export default function Recommendation() {
+  // --- DỮ LIỆU NGÔN NGỮ ---
+  const [selectedLanguage, setSelectedLanguage] = useState("en"); // Default to Vietnamese
+  const supportedLanguages = [
+    { code: "vi", label: "Tiếng Việt" },
+    { code: "en", label: "English" }
+  ];
   // --- DỮ LIỆU SẢN PHẨM ---
   const [stdProducts, setStdProducts] = useState<string[]>([]);
   const [supProducts, setSupProducts] = useState<string[]>([]);
@@ -23,6 +30,11 @@ export default function Recommendation() {
   const [searchSup, setSearchSup] = useState("");
   const [supResults, setSupResults] = useState<any[]>([]);
   const [loadingSuper, setLoadingSuper] = useState(false);
+
+  // Language setting/fetching translation from CSV
+  const getDisplayName = (productName: string): string => {
+    return getProductTranslation(productName, selectedLanguage as 'en' | 'vi');
+  };
 
   // Load sản phẩm ban đầu
   useEffect(() => {
@@ -87,7 +99,39 @@ export default function Recommendation() {
 
   return (
     <div className="min-h-screen p-6 space-y-10 bg-[#f3f5f8] text-[#1f3c5a]">
-      
+
+      {/* LANGUAGE MODE */}
+      <div className="flex justify-end mb-4">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-bold text-[#09750e]">
+            Ngôn ngữ / Language:
+          </label>
+
+          <select
+            value={selectedLanguage}
+            onChange={(e) => setSelectedLanguage(e.target.value)}
+            className="
+              bg-white
+              border border-slate-300
+              text-blue-800
+              px-3 py-2
+              rounded-md
+              shadow-sm
+              hover:border-blue-400
+              focus:outline-none
+              focus:ring-2
+              focus:ring-blue-500
+            "
+          >
+            {supportedLanguages.map(lang => (
+              <option key={lang.code} value={lang.code}>
+                {lang.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* SECTION 1: TIÊU CHUẨN */}
       <div className="space-y-4">
         <h2 className="text-[#db2777] font-bold flex items-center gap-2 px-2">
@@ -111,7 +155,7 @@ export default function Recommendation() {
                 {selectedStd.length === 0 ? <p className="text-[#c17cab] text-sm italic w-full text-center py-4">Trống...</p> : 
                   selectedStd.map(item => (
                     <Badge key={item} className="bg-[#fbcfe8] text-[#831843] flex gap-1 items-center px-3 py-1">
-                      {item} <X size={14} className="cursor-pointer hover:text-red-600" onClick={(e) => removeItem(e, item, setSelectedStd)} />
+                      {getDisplayName(item)} <X size={14} className="cursor-pointer hover:text-red-600" onClick={(e) => removeItem(e, item, setSelectedStd)} />
                     </Badge>
                   ))
                 }
@@ -126,7 +170,7 @@ export default function Recommendation() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {stdProducts.filter(p => p.toLowerCase().includes(searchStd.toLowerCase())).map(item => (
                     <button key={item} onClick={() => !selectedStd.includes(item) && setSelectedStd([...selectedStd, item])} className="flex items-center justify-between px-3 py-2 text-sm text-[#be185d] bg-white border border-[#f1c8df] rounded hover:border-[#db2777] transition-all">
-                      <span className="truncate">{item}</span> <Plus size={14} />
+                      <span className="truncate">{getDisplayName(item)}</span> <Plus size={14} />
                     </button>
                   ))}
                 </div>
@@ -169,9 +213,9 @@ export default function Recommendation() {
                   stdResults.map((item, idx) => (
                     <TableRow key={idx}>
                       <TableCell className="text-[#be185d] font-medium">{item.product_id}</TableCell>
-                      <TableCell className="text-[#be185d] font-medium">{item.product_name}</TableCell>
+                      <TableCell className="text-[#be185d] font-medium">{getDisplayName(item.product_name)}</TableCell>
                       <TableCell className="text-[#be185d]">
-                        {item.suggestion}
+                        {getDisplayName(item.suggestion)}
                       </TableCell>
                       <TableCell className="text-center text-[#be185d]">
                         {item.confidence}%
@@ -210,7 +254,7 @@ export default function Recommendation() {
                 {selectedSup.length === 0 ? <p className="text-[#a78bca] text-sm italic w-full text-center py-4">Trống...</p> : 
                   selectedSup.map(item => (
                     <Badge key={item} className="bg-[#e9d5ff] text-[#581c87] flex gap-1 items-center px-3 py-1">
-                      {item} <X size={14} className="cursor-pointer hover:text-red-600" onClick={(e) => removeItem(e, item, setSelectedSup)} />
+                      {getDisplayName(item)} <X size={14} className="cursor-pointer hover:text-red-600" onClick={(e) => removeItem(e, item, setSelectedSup)} />
                     </Badge>
                   ))
                 }
@@ -225,7 +269,7 @@ export default function Recommendation() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {supProducts.filter(p => p.toLowerCase().includes(searchSup.toLowerCase())).map(item => (
                     <button key={item} onClick={() => !selectedSup.includes(item) && setSelectedSup([...selectedSup, item])} className="flex items-center justify-between px-3 py-2 text-sm text-[#7e22ce] bg-white border border-[#dcc9f9] rounded hover:border-[#7e22ce] transition-all">
-                      <span className="truncate">{item}</span> <Plus size={14} />
+                      <span className="truncate">{getDisplayName(item)}</span> <Plus size={14} />
                     </button>
                   ))}
                 </div>
@@ -259,11 +303,11 @@ export default function Recommendation() {
                   supResults.map((item, idx) => (
                     <TableRow key={idx} className="border-[#dcc9f9] hover:bg-[#faf5ff]">
                       <TableCell className="text-[#7e22ce] font-medium">
-                        {item.selected_items}
+                        {getDisplayName(item.selected_items)}
                       </TableCell>
 
                       <TableCell className="text-[#7e22ce] font-medium">
-                        {item.suggestion}
+                        {getDisplayName(item.suggestion)}
                       </TableCell>
 
                       <TableCell className="text-center text-[#7e22ce] font-mono">

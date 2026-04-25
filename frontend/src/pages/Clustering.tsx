@@ -217,7 +217,11 @@ export default function Clustering() {
       {/* SECTION 1: 4 NHÓM KHÁCH HÀNG */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {uiStats.map((segment) => (
-          <Card key={segment.type} className="bg-[#ffffff] border-slate-200 relative overflow-hidden group hover:shadow-md transition-all">
+          <Card 
+            key={segment.type} 
+            className="bg-[#ffffff] border-slate-200 relative overflow-hidden group hover:shadow-md transition-all border-t-4"
+            style={{ borderTopColor: segment.color }}
+          >
             <div className="absolute top-0 right-0 p-2 opacity-20 group-hover:opacity-100 transition-opacity">
               {segment.icon}
             </div>
