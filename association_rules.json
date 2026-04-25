@@ -1,39 +1,37 @@
-{"antecedent":["Green Regency Teacup And Saucer","Roses Regency Teacup And Saucer"],"consequent":["Pink Regency Teacup And Saucer"],"confidence":0.7002551020408163,"lift":20.285542306810367,"support":0.02365971384244096}
-{"antecedent":["Pink Regency Teacup And Saucer","Roses Regency Teacup And Saucer"],"consequent":["Green Regency Teacup And Saucer"],"confidence":0.8941368078175895,"lift":19.62871380189153,"support":0.02365971384244096}
-{"antecedent":["Gardeners Kneeling Pad Cup Of Tea"],"consequent":["Gardeners Kneeling Pad Keep Calm"],"confidence":0.7176470588235294,"lift":18.021950598421185,"support":0.02365971384244096}
-{"antecedent":["Gardeners Kneeling Pad Keep Calm"],"consequent":["Gardeners Kneeling Pad Cup Of Tea"],"confidence":0.5941558441558441,"lift":18.021950598421185,"support":0.02365971384244096}
-{"antecedent":["Pink Regency Teacup And Saucer","Green Regency Teacup And Saucer"],"consequent":["Roses Regency Teacup And Saucer"],"confidence":0.8524844720496895,"lift":17.66165150842946,"support":0.02365971384244096}
-{"antecedent":["Green Regency Teacup And Saucer"],"consequent":["Pink Regency Teacup And Saucer"],"confidence":0.609271523178808,"lift":17.649858207042524,"support":0.027753835545595587}
-{"antecedent":["Pink Regency Teacup And Saucer"],"consequent":["Green Regency Teacup And Saucer"],"confidence":0.8039950062421972,"lift":17.64985820704252,"support":0.027753835545595587}
-{"antecedent":["Spaceboy Lunch Box"],"consequent":["Dolly Girl Lunch Box"],"confidence":0.5925110132158591,"lift":15.986773896117203,"support":0.02318565764523358}
-{"antecedent":["Dolly Girl Lunch Box"],"consequent":["Spaceboy Lunch Box"],"confidence":0.6255813953488372,"lift":15.986773896117201,"support":0.02318565764523358}
-{"antecedent":["Roses Regency Teacup And Saucer"],"consequent":["Pink Regency Teacup And Saucer"],"confidence":0.5482142857142858,"lift":15.881103977171396,"support":0.026460955007757282}
-{"antecedent":["Pink Regency Teacup And Saucer"],"consequent":["Roses Regency Teacup And Saucer"],"confidence":0.766541822721598,"lift":15.881103977171394,"support":0.026460955007757282}
-{"antecedent":["Green Regency Teacup And Saucer"],"consequent":["Roses Regency Teacup And Saucer"],"confidence":0.7417218543046358,"lift":15.366887417218544,"support":0.03378727805550767}
-{"antecedent":["Roses Regency Teacup And Saucer"],"consequent":["Green Regency Teacup And Saucer"],"confidence":0.7,"lift":15.36688741721854,"support":0.03378727805550767}
-{"antecedent":["Charlotte Bag Pink Polkadot"],"consequent":["Red Retrospot Charlotte Bag"],"confidence":0.6921052631578948,"lift":15.2948671679198,"support":0.022668505430098258}
-{"antecedent":["Red Retrospot Charlotte Bag"],"consequent":["Charlotte Bag Pink Polkadot"],"confidence":0.5009523809523809,"lift":15.294867167919799,"support":0.022668505430098258}
-{"antecedent":["Strawberry Charlotte Bag"],"consequent":["Red Retrospot Charlotte Bag"],"confidence":0.667574931880109,"lift":14.752770208901,"support":0.021117048784692293}
-{"antecedent":["Alarm Clock Bakelike Green"],"consequent":["Alarm Clock Bakelike Red"],"confidence":0.6453546453546454,"lift":13.852737456807763,"support":0.027840027581451474}
-{"antecedent":["Alarm Clock Bakelike Red"],"consequent":["Alarm Clock Bakelike Green"],"confidence":0.5975948196114709,"lift":13.852737456807763,"support":0.027840027581451474}
-{"antecedent":["Woodland Charlotte Bag"],"consequent":["Red Retrospot Charlotte Bag"],"confidence":0.6014234875444839,"lift":13.290886290459245,"support":0.021849681089467332}
-{"antecedent":["Paper Chain Kit Vintage Christmas"],"consequent":["Paper Chain Kit 50'S Christmas"],"confidence":0.6670673076923077,"lift":13.229598126232741,"support":0.02391828995000862}
-{"antecedent":["Alarm Clock Bakelike Pink"],"consequent":["Alarm Clock Bakelike Red"],"confidence":0.5969962453066333,"lift":12.814709413594006,"support":0.02055680055162903}
-{"antecedent":["Charlotte Bag Suki Design"],"consequent":["Red Retrospot Charlotte Bag"],"confidence":0.5704697986577181,"lift":12.60683924576542,"support":0.021978969143251162}
-{"antecedent":["Wooden Frame Antique White"],"consequent":["Wooden Picture Frame White Finish"],"confidence":0.5521783181357649,"lift":11.460416542059292,"support":0.023487329770729183}
-{"antecedent":["Jumbo Bag Vintage Leaf"],"consequent":["Jumbo Bag Vintage Doily"],"confidence":0.5853107344632769,"lift":10.882652469940606,"support":0.02232373728667471}
-{"antecedent":["Heart Of Wicker Large"],"consequent":["Heart Of Wicker Small"],"confidence":0.524416135881104,"lift":10.040059419954733,"support":0.02128943285640407}
-{"antecedent":["Lunch Bag Pink Polkadot"],"consequent":["Lunch Bag Red Retrospot"],"confidence":0.5522522522522523,"lift":7.969192326655015,"support":0.02641785898982934}
-{"antecedent":["Lunch Bag Woodland"],"consequent":["Lunch Bag Red Retrospot"],"confidence":0.5130183220829315,"lift":7.403033050753946,"support":0.02292708153766592}
-{"antecedent":["Jumbo Bag Pink Polkadot"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.6766856214459789,"lift":7.354479231865336,"support":0.0358989829339769}
-{"antecedent":["Lunch Bag Suki Design"],"consequent":["Lunch Bag Red Retrospot"],"confidence":0.5076569678407351,"lift":7.325666841900758,"support":0.028572659886226513}
-{"antecedent":["Jumbo Bag Scandinavian Blue Paisley"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.6691176470588235,"lift":7.272227579556412,"support":0.023530425788657126}
-{"antecedent":["Lunch Bag Black Skull"],"consequent":["Lunch Bag Red Retrospot"],"confidence":0.5003861003861004,"lift":7.220745692387485,"support":0.02792621961730736}
-{"antecedent":["Jumbo Bag Strawberry"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.6503579952267303,"lift":7.068340478333044,"support":0.023487329770729183}
-{"antecedent":["Jumbo Bag Baroque Black White"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.6261879619852164,"lift":6.805651273960169,"support":0.02555593863127047}
-{"antecedent":["Jumbo Bag Woodland Animals"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.6169724770642202,"lift":6.705493844401951,"support":0.02318565764523358}
-{"antecedent":["Red Hanging Heart T-Light Holder"],"consequent":["Cream Hanging Heart T-Light Holder"],"confidence":0.6657824933687002,"lift":6.684905658211735,"support":0.021634200999827616}
-{"antecedent":["Jumbo Storage Bag Suki"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.6103247293921732,"lift":6.633243569468846,"support":0.03158938114118255}
-{"antecedent":["Jumbo Bag Pink Vintage Paisley"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.5952109464082098,"lift":6.468981171173818,"support":0.022496121358386485}
-{"antecedent":["Jumbo Shopper Vintage Red Paisley"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.5754001684919966,"lift":6.253670027957044,"support":0.02943458024478538}
-{"antecedent":["Jumbo Bag Apples"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.5555555555555556,"lift":6.037991152745251,"support":0.02391828995000862}
+{"antecedent":["Green Regency Teacup And Saucer","Roses Regency Teacup And Saucer"],"consequent":["Pink Regency Teacup And Saucer"],"confidence":0.7057291666666666,"lift":18.232872334638817,"support":0.02738756947953512}
+{"antecedent":["Pink Regency Teacup And Saucer","Roses Regency Teacup And Saucer"],"consequent":["Green Regency Teacup And Saucer"],"confidence":0.9048414023372288,"lift":17.64217867217119,"support":0.02738756947953512}
+{"antecedent":["Pink Regency Teacup And Saucer"],"consequent":["Green Regency Teacup And Saucer"],"confidence":0.8263707571801566,"lift":16.11219436905941,"support":0.031985851440121275}
+{"antecedent":["Green Regency Teacup And Saucer"],"consequent":["Pink Regency Teacup And Saucer"],"confidence":0.6236453201970443,"lift":16.11219436905941,"support":0.031985851440121275}
+{"antecedent":["Pink Regency Teacup And Saucer","Green Regency Teacup And Saucer"],"consequent":["Roses Regency Teacup And Saucer"],"confidence":0.8562401263823065,"lift":15.895865010418241,"support":0.02738756947953512}
+{"antecedent":["Gardeners Kneeling Pad Cup Of Tea"],"consequent":["Gardeners Kneeling Pad Keep Calm"],"confidence":0.7203166226912929,"lift":15.613434789770743,"support":0.027589691763516926}
+{"antecedent":["Gardeners Kneeling Pad Keep Calm"],"consequent":["Gardeners Kneeling Pad Cup Of Tea"],"confidence":0.5980284775465499,"lift":15.613434789770741,"support":0.027589691763516926}
+{"antecedent":["Roses Regency Teacup And Saucer"],"consequent":["Pink Regency Teacup And Saucer"],"confidence":0.5619136960600375,"lift":14.517326429540656,"support":0.030267812026275896}
+{"antecedent":["Pink Regency Teacup And Saucer"],"consequent":["Roses Regency Teacup And Saucer"],"confidence":0.7819843342036553,"lift":14.517326429540654,"support":0.030267812026275896}
+{"antecedent":["Green Regency Teacup And Saucer"],"consequent":["Roses Regency Teacup And Saucer"],"confidence":0.7566502463054188,"lift":14.047005979722549,"support":0.038807478524507326}
+{"antecedent":["Roses Regency Teacup And Saucer"],"consequent":["Green Regency Teacup And Saucer"],"confidence":0.7204502814258912,"lift":14.047005979722549,"support":0.038807478524507326}
+{"antecedent":["Dolly Girl Lunch Box"],"consequent":["Spaceboy Lunch Box"],"confidence":0.6321974148061105,"lift":13.901318710014362,"support":0.02718544719555331}
+{"antecedent":["Spaceboy Lunch Box"],"consequent":["Dolly Girl Lunch Box"],"confidence":0.5977777777777777,"lift":13.901318710014362,"support":0.02718544719555331}
+{"antecedent":["Red Retrospot Charlotte Bag"],"consequent":["Charlotte Bag Pink Polkadot"],"confidence":0.504835589941973,"lift":13.446428431967222,"support":0.026376958059626074}
+{"antecedent":["Charlotte Bag Pink Polkadot"],"consequent":["Red Retrospot Charlotte Bag"],"confidence":0.702557200538358,"lift":13.44642843196722,"support":0.026376958059626074}
+{"antecedent":["Alarm Clock Bakelike Green"],"consequent":["Alarm Clock Bakelike Red"],"confidence":0.6523955147808359,"lift":12.284402699821829,"support":0.03233956543708944}
+{"antecedent":["Alarm Clock Bakelike Red"],"consequent":["Alarm Clock Bakelike Green"],"confidence":0.6089438629876308,"lift":12.284402699821827,"support":0.03233956543708944}
+{"antecedent":["Woodland Charlotte Bag"],"consequent":["Red Retrospot Charlotte Bag"],"confidence":0.6059880239520958,"lift":11.59816537138489,"support":0.025568468923698837}
+{"antecedent":["Paper Chain Kit Vintage Christmas"],"consequent":["Paper Chain Kit 50'S Christmas"],"confidence":0.6731707317073171,"lift":11.484524810765349,"support":0.02789287518948964}
+{"antecedent":["Charlotte Bag Suki Design"],"consequent":["Red Retrospot Charlotte Bag"],"confidence":0.5748299319727891,"lift":11.0018223923999,"support":0.02561899949469429}
+{"antecedent":["Wooden Frame Antique White"],"consequent":["Wooden Picture Frame White Finish"],"confidence":0.5545267489711934,"lift":9.976440329218107,"support":0.027235977766548763}
+{"antecedent":["Jumbo Bag Vintage Leaf"],"consequent":["Jumbo Bag Vintage Doily"],"confidence":0.5870307167235495,"lift":9.437317533679158,"support":0.02607377463365336}
+{"antecedent":["Lunch Bag Pink Polkadot"],"consequent":["Lunch Bag Red Retrospot"],"confidence":0.5559633027522936,"lift":7.0213872121684044,"support":0.030621526023244063}
+{"antecedent":["Lunch Bag Woodland"],"consequent":["Lunch Bag Red Retrospot"],"confidence":0.5166994106090373,"lift":6.5255145730394695,"support":0.026579080343607883}
+{"antecedent":["Lunch Bag Suki Design"],"consequent":["Lunch Bag Red Retrospot"],"confidence":0.5101088646967341,"lift":6.442281067229335,"support":0.03314805457301667}
+{"antecedent":["Jumbo Bag Pink Polkadot"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.6773399014778325,"lift":6.407531859582364,"support":0.0416877210712481}
+{"antecedent":["Lunch Bag Black Skull"],"consequent":["Lunch Bag Red Retrospot"],"confidence":0.5039246467817896,"lift":6.364179170269059,"support":0.032440626579080346}
+{"antecedent":["Jumbo Bag Scandinavian Blue Paisley"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.6712158808933002,"lift":6.349599561605359,"support":0.027337038908539668}
+{"antecedent":["Jumbo Bag Strawberry"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.6509090909090909,"lift":6.1575004345558835,"support":0.02713491662455786}
+{"antecedent":["Jumbo Bag Baroque Black White"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.6270096463022508,"lift":5.931415344321961,"support":0.029560384032339567}
+{"antecedent":["Jumbo Bag Woodland Animals"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.6199304750869061,"lift":5.864447467480819,"support":0.027033855482566954}
+{"antecedent":["Red Hanging Heart T-Light Holder"],"consequent":["Cream Hanging Heart T-Light Holder"],"confidence":0.6707152496626181,"lift":5.849913966867876,"support":0.02511369378473977}
+{"antecedent":["Jumbo Storage Bag Suki"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.6114864864864865,"lift":5.784568626944345,"support":0.03658413340070743}
+{"antecedent":["Jumbo Bag Pink Vintage Paisley"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.5988439306358382,"lift":5.664971982448966,"support":0.026174835775644265}
+{"antecedent":["Jumbo Shopper Vintage Red Paisley"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.5782312925170068,"lift":5.469979578829619,"support":0.03436078827690753}
+{"antecedent":["Jumbo Bag Apples"],"consequent":["Jumbo Bag Red Retrospot"],"confidence":0.558282208588957,"lift":5.281264296355382,"support":0.027589691763516926}
+{"antecedent":["Green Regency Teacup And Saucer"],"consequent":["Regency Cakestand 3 Tier"],"confidence":0.5014778325123153,"lift":4.989565764413634,"support":0.025720060636685194}
