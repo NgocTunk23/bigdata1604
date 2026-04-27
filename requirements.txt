@@ -3,3 +3,7 @@ kafka-python
 streamlit
 pandas
 plotly
+
+fastapi
+uvicorn
+websockets
