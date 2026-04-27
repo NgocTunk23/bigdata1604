@@ -47,9 +47,9 @@ export default function App() {
                     className="text-slate-800 tracking-tight"
                     style={{ fontWeight: 700, fontSize: "1.25rem" }}
                   >
-                    Big Data Analytics
+                    Big Data
                   </h1>
-                  <p
+                  {/* <p
                     className="text-blue-600 tracking-wide"
                     style={{
                       fontSize: "0.6875rem",
@@ -57,7 +57,7 @@ export default function App() {
                     }}
                   >
                     PHÂN TÍCH DỮ LIỆU
-                  </p>
+                  </p> */}
                 </div>
               </div>
             </div>
@@ -74,7 +74,7 @@ export default function App() {
                 <span
                   style={{ fontWeight: activeTab === "dashboard1" ? 600 : 500 }}
                 >
-                  Bảng điều khiển
+                  Dashboard
                 </span>
               </button>
               <button
@@ -87,7 +87,7 @@ export default function App() {
                 <span
                   style={{ fontWeight: activeTab === "dashboard2" ? 600 : 500 }}
                 >
-                  Phân tích sâu
+                  Analysis
                 </span>
               </button>
               <button
@@ -98,7 +98,7 @@ export default function App() {
                   className={`size-5 transition-transform duration-300 ${activeTab === "rules" ? "scale-110" : "group-hover:scale-105"}`}
                 />
                 <span style={{ fontWeight: activeTab === "rules" ? 600 : 500 }}>
-                  Luật sinh
+                  AssociationRules
                 </span>
               </button>
               <button
@@ -111,7 +111,7 @@ export default function App() {
                 <span
                   style={{ fontWeight: activeTab === "clustering" ? 600 : 500 }}
                 >
-                  Phân cụm khách hàng
+                  Clustering
                 </span>
               </button>
             </nav>
