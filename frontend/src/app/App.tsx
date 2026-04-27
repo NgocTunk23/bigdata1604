@@ -129,10 +129,10 @@ export default function App() {
                     className="text-slate-900 tracking-tight"
                     style={{ fontSize: "1.75rem", fontWeight: 700 }}
                   >
-                    {activeTab === "dashboard1" && "Bảng điều khiển"}
-                    {activeTab === "dashboard2" && "Phân tích sâu"}
-                    {activeTab === "rules" && "Luật sinh"}
-                    {activeTab === "clustering" && "Phân cụm khách hàng"}
+                    {activeTab === "dashboard1" && "Dashboard"}
+                    {activeTab === "dashboard2" && "Analysis"}
+                    {activeTab === "rules" && "Association Rules"}
+                    {activeTab === "clustering" && "Clustering"}
                   </h2>
                 </div>
               </div>
