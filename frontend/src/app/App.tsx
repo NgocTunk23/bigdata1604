@@ -141,24 +141,26 @@ export default function App() {
             </div>
           </header>
 
-          {/* Tab Content - Giữ nguyên DOM để duy trì streaming bằng CSS hidden */}
-          <div className="flex-1 overflow-auto p-8 relative">
-            <div className={activeTab === "dashboard1" ? "block h-full" : "hidden"}>
-              <Dashboard1 liveData={streamData} />
-            </div>
-            
-            <div className={activeTab === "dashboard2" ? "block h-full" : "hidden"}>
-              <Dashboard2 liveData={streamData} />
-            </div>
-            
-            <div className={activeTab === "rules" ? "block h-full" : "hidden"}>
-              <AssociationRulesTab liveData={streamData} />
-            </div>
-            
-            <div className={activeTab === "clustering" ? "block h-full" : "hidden"}>
-              <ClusteringTab liveData={streamData} />
-            </div>
-          </div>
+{/* Trong App.tsx - Sửa lại Main Content */}
+<div className="flex-1 overflow-auto p-8 relative">
+  <div className={activeTab === "dashboard1" ? "block h-full" : "hidden"}>
+    {/* Xóa liveData={streamData} nếu Dashboard1 không dùng tới */}
+    <Dashboard1 /> 
+  </div>
+  
+  <div className={activeTab === "dashboard2" ? "block h-full" : "hidden"}>
+    <Dashboard2 />
+  </div>
+  
+  <div className={activeTab === "rules" ? "block h-full" : "hidden"}>
+    <AssociationRulesTab/>
+  </div>
+  
+  <div className={activeTab === "clustering" ? "block h-full" : "hidden"}>
+    {/* ClusteringTab tự kết nối WebSocket qua ws/clusters nên không cần truyền */}
+    <ClusteringTab />
+  </div>
+</div>
         </main>
       </div>
     </DndProvider>

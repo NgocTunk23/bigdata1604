@@ -11,7 +11,7 @@ interface StreamData {
 // Get top 10 products from association rules data
 const INITIAL_PRODUCTS = getTopProducts(10);
 
-export function Dashboard1({ liveData }: { liveData: any }) {
+export function Dashboard1() {
   const [streamData, setStreamData] = useState<StreamData[]>(
     Array.from({ length: 20 }, (_, i) => ({
       time: i,
