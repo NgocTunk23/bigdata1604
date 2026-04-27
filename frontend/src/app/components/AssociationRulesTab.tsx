@@ -2,12 +2,11 @@ import { useState } from "react";
 import { X, Sparkles, ChevronRight, TrendingUp } from "lucide-react";
 
 // Import trực tiếp dữ liệu từ file JSON
-import standardRulesData from "../../imports/association.json";
-import superRulesData from "../../imports/associationsuper.json";
-import { STANDARD_PRODUCTS, SUPER_PRODUCTS } from "../utils/productData";
+import standardRulesData from "../../data/association_rules.json";
+import superRulesData from "../../data/association_rules_super.json";
 
 interface Rule {
-  id: number;
+  id: string; // Đổi sang string để tránh trùng lặp ID
   antecedent: string[];
   consequent: string[];
   support: number;
@@ -15,10 +14,18 @@ interface Rule {
   lift: number;
 }
 
+// Hàm hỗ trợ so sánh 2 mảng (để lọc rule trùng)
+const arraysEqual = (a: string[], b: string[]) => {
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.every((val, index) => val === sortedB[index]);
+};
+
 // Map dữ liệu từ JSON vào định dạng chuẩn
 const STANDARD_RULES: Rule[] = standardRulesData.map(
   (rule: any, idx: number) => ({
-    id: idx + 1,
+    id: `std-${idx}`,
     antecedent: rule.antecedent,
     consequent: rule.consequent,
     support: rule.support,
@@ -27,14 +34,35 @@ const STANDARD_RULES: Rule[] = standardRulesData.map(
   }),
 );
 
-const SUPER_RULES: Rule[] = superRulesData.map((rule: any, idx: number) => ({
-  id: idx + 1,
-  antecedent: rule.antecedent,
-  consequent: rule.consequent,
-  support: rule.support,
-  confidence: rule.confidence,
-  lift: rule.lift,
-}));
+// Map dữ liệu SUPER và LỌC bỏ các dòng đã tồn tại trong STANDARD_RULES
+const SUPER_RULES: Rule[] = superRulesData
+  .map((rule: any, idx: number) => ({
+    id: `sup-${idx}`,
+    antecedent: rule.antecedent,
+    consequent: rule.consequent,
+    support: rule.support,
+    confidence: rule.confidence,
+    lift: rule.lift,
+  }))
+  .filter((superRule) => {
+    // Kiểm tra xem có luật nào trong STANDARD_RULES giống y hệt (cùng tập antecedent và consequent)
+    const isDuplicate = STANDARD_RULES.some(
+      (stdRule) =>
+        arraysEqual(stdRule.antecedent, superRule.antecedent) &&
+        arraysEqual(stdRule.consequent, superRule.consequent)
+    );
+    // Chỉ giữ lại những luật chưa có trong STANDARD_RULES
+    return !isDuplicate;
+  });
+
+// Trích xuất tự động danh sách các sản phẩm từ thuộc tính 'antecedent' (loại bỏ trùng lặp)
+const STANDARD_PRODUCTS = Array.from(
+  new Set(STANDARD_RULES.flatMap((rule) => rule.antecedent))
+).sort();
+
+const SUPER_PRODUCTS = Array.from(
+  new Set(SUPER_RULES.flatMap((rule) => rule.antecedent))
+).sort();
 
 export function AssociationRulesTab() {
   const [standardSelected, setStandardSelected] = useState<string[]>([]);
@@ -66,7 +94,6 @@ export function AssociationRulesTab() {
     setSuperSelected((prev) => prev.filter((p) => p !== product));
   };
 
-  // CHỈ XỬ LÝ LỌC DỮ LIỆU LOCAL
   const getStandardRecommendations = () => {
     if (standardSelected.length === 0) {
       setStandardResults([]);
@@ -80,7 +107,6 @@ export function AssociationRulesTab() {
     setStandardResults(filtered);
   };
 
-  // CHỈ XỬ LÝ LỌC DỮ LIỆU LOCAL
   const getSuperRecommendations = () => {
     if (superSelected.length === 0) {
       setSuperResults([]);
@@ -109,11 +135,11 @@ export function AssociationRulesTab() {
               className="text-pink-900"
               style={{ fontSize: "1.5rem", fontWeight: 700 }}
             >
-              Mô hình Tiêu chuẩn
+              Mô hình FP-Growth
             </h2>
           </div>
           <p className="text-pink-700" style={{ fontSize: "0.875rem" }}>
-            Phân tích luật kết hợp với các sản phẩm tiêu chuẩn (hồng pastel)
+            Phân tích dữ liệu với luật kết hợp của mô hình FP-Growth
           </p>
         </div>
 
@@ -159,7 +185,7 @@ export function AssociationRulesTab() {
             className="text-pink-800 mb-4 block"
             style={{ fontWeight: 600, fontSize: "0.9375rem" }}
           >
-            Chọn sản phẩm để phân tích
+            Chọn sản phẩm để phân tích ({STANDARD_PRODUCTS.length} sản phẩm)
           </label>
           <div className="grid grid-cols-4 gap-3">
             {STANDARD_PRODUCTS.map((product, idx) => (
@@ -204,13 +230,13 @@ export function AssociationRulesTab() {
                 className="text-pink-900"
                 style={{ fontWeight: 600, fontSize: "1.125rem" }}
               >
-                Kết quả gợi ý - Mô hình Tiêu chuẩn
+                Kết quả gợi ý - Mô hình FP-Growth
               </h3>
               <p
                 className="text-pink-600 mt-1"
                 style={{ fontSize: "0.875rem" }}
               >
-                Tìm thấy {standardResults.length} luật kết hợp phù hợp
+                Tìm thấy {standardResults.length} luật kết hợp
               </p>
             </div>
             <div className="overflow-x-auto">
@@ -221,7 +247,7 @@ export function AssociationRulesTab() {
                       className="px-6 py-3 text-left text-pink-700"
                       style={{ fontSize: "0.875rem", fontWeight: 600 }}
                     >
-                      Sản phẩm gốc
+                      Sản phẩm trong giỏ
                     </th>
                     <th
                       className="px-6 py-3 text-center text-pink-700"
@@ -330,11 +356,11 @@ export function AssociationRulesTab() {
               className="text-purple-900"
               style={{ fontSize: "1.5rem", fontWeight: 700 }}
             >
-              Mô hình Super
+              Mô hình FP-Growth Super
             </h2>
           </div>
           <p className="text-purple-700" style={{ fontSize: "0.875rem" }}>
-            Phân tích nâng cao với dữ liệu và luật kết hợp đặc biệt (tím pastel)
+            Phân tích dữ liệu với luật kết hợp của mô hình FP-Growth Super
           </p>
         </div>
 
@@ -380,23 +406,29 @@ export function AssociationRulesTab() {
             className="text-purple-800 mb-4 block"
             style={{ fontWeight: 600, fontSize: "0.9375rem" }}
           >
-            Chọn sản phẩm cho mô hình Super
+            Chọn sản phẩm cho mô hình FP-Growth Super ({SUPER_PRODUCTS.length} sản phẩm)
           </label>
           <div className="grid grid-cols-3 gap-3">
-            {SUPER_PRODUCTS.map((product, idx) => (
-              <button
-                key={idx}
-                onClick={() => toggleSuperProduct(product)}
-                className={`px-4 py-3 rounded-lg border-2 transition-all duration-200 text-left ${
-                  superSelected.includes(product)
-                    ? "bg-[#e8c7f1] text-[#84359b] border-[#e8c7f1] shadow-md scale-105"
-                    : "bg-white text-slate-700 border-purple-100 hover:border-purple-300 hover:bg-purple-50"
-                }`}
-                style={{ fontSize: "0.8125rem", fontWeight: 500 }}
-              >
-                {product}
-              </button>
-            ))}
+            {SUPER_PRODUCTS.length === 0 ? (
+              <div className="col-span-3 p-4 text-center text-slate-500">
+                Không có dữ liệu luật mới ở mô hình Super so với Tiêu chuẩn.
+              </div>
+            ) : (
+              SUPER_PRODUCTS.map((product, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => toggleSuperProduct(product)}
+                  className={`px-4 py-3 rounded-lg border-2 transition-all duration-200 text-left ${
+                    superSelected.includes(product)
+                      ? "bg-[#e8c7f1] text-[#84359b] border-[#e8c7f1] shadow-md scale-105"
+                      : "bg-white text-slate-700 border-purple-100 hover:border-purple-300 hover:bg-purple-50"
+                  }`}
+                  style={{ fontSize: "0.8125rem", fontWeight: 500 }}
+                >
+                  {product}
+                </button>
+              ))
+            )}
           </div>
 
           {/* Recommend Button */}
@@ -426,7 +458,7 @@ export function AssociationRulesTab() {
                 style={{ fontWeight: 600, fontSize: "1.125rem" }}
               >
                 <Sparkles className="size-5 text-purple-600" />
-                Kết quả gợi ý - Mô hình Super
+                Kết quả gợi ý - Mô hình FP-Growth Super
               </h3>
               <p
                 className="text-purple-700 mt-1"
@@ -443,7 +475,7 @@ export function AssociationRulesTab() {
                       className="px-6 py-3 text-left text-purple-800"
                       style={{ fontSize: "0.875rem", fontWeight: 600 }}
                     >
-                      Sản phẩm gốc
+                      Sản phẩm trong giỏ
                     </th>
                     <th
                       className="px-6 py-3 text-center text-purple-800"
