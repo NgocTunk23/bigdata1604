@@ -27,35 +27,40 @@ producer = get_producer()
 def run_simulator():
     print("--- 🚀 Bắt đầu phát dữ liệu giao dịch (Simulator) ---")
     
-    # Sử dụng đường dẫn tuyệt đối trong Container
-    file_path = '/app/asso_products.parquet'
+    # Sử dụng đường dẫn tuyệt đối trong Container như bạn đã chỉ định
+    file_path = '/app/data/results/final_dataset_streaming.parquet' 
     
     try:
+        # Đọc dữ liệu từ file Parquet
         df = pd.read_parquet(file_path)
+        print(f"--- 📊 Đã tải dữ liệu thành công. Tổng cộng {len(df)} giao dịch. ---")
     except Exception as e:
         print(f"--- ❌ Lỗi đọc file: {e} ---")
         return
 
-    for index, row in df.iterrows():
-        # Chuẩn bị dữ liệu giao dịch (Thêm CustomerNo)
-        # Sử dụng get("CustomerID") hoặc get("CustomerNo") tùy theo tên cột trong file parquet gốc
-        cust_id = row.get("CustomerNo") 
+    # for index, row in df.iterrows():
+    #     # Lấy CustomerNo từ cột tương ứng
+    #     cust_id = row.get("CustomerNo") 
+        
+    #     # SỬA TẠI ĐÂY: Lấy dữ liệu từ cột 'Basket' (thay vì 'items')
+    #     # Chúng ta vẫn giữ key trong record là "items" để Bridge và Frontend không bị lỗi
+    #     basket_data = row.get("Basket", [])
 
-        record = {
-            "TransactionNo": str(row.get("TransactionNo", f"TXN_{index}")),
-            "CustomerNo": str(cust_id) if cust_id else "Guest", # Lấy đúng ID từ file
-            "items": row["items"].tolist() if isinstance(row["items"], np.ndarray) else list(row["items"])
-        }
+    #     record = {
+    #         "TransactionNo": str(row.get("TransactionNo", f"TXN_{index}")),
+    #         "CustomerNo": str(cust_id) if cust_id is not None else "Guest",
+    #         "items": basket_data.tolist() if isinstance(basket_data, np.ndarray) else list(basket_data)
+    #     }
         
-        # Gửi dữ liệu vào Kafka
-        try:
-            producer.send('live_transactions', value=record)
-            print(f"[Sent] TXN: {record['TransactionNo']} | CN: {record['CustomerNo']} |Items: {len(record['items'])}")
-        except Exception as e:
-            print(f"--- ⚠️ Lỗi khi gửi dữ liệu: {e} ---")
+    #     # Gửi dữ liệu vào Kafka topic 'live_transactions'
+    #     try:
+    #         producer.send('live_transactions', value=record)
+    #         print(f"[Sent] TXN: {record['TransactionNo']} | CN: {record['CustomerNo']} | Items: {len(record['items'])}")
+    #     except Exception as e:
+    #         print(f"--- ⚠️ Lỗi khi gửi dữ liệu lên Kafka: {e} ---")
         
-        # Nghỉ để giả lập thời gian thực
-        time.sleep(2)
+    #     # Nghỉ 2 giây để giả lập luồng giao dịch thời gian thực
+    #     time.sleep(2)
 
 if __name__ == "__main__":
     run_simulator()

@@ -47,7 +47,7 @@ export default function App() {
                     className="text-slate-800 tracking-tight"
                     style={{ fontWeight: 700, fontSize: "1.25rem" }}
                   >
-                    DataLens
+                    Big Data Analytics
                   </h1>
                   <p
                     className="text-blue-600 tracking-wide"
