@@ -67,3 +67,17 @@ services:
       sh -c "npm install && npm run dev -- --port 3001 --host"
     depends_on:
       - bridge
+  
+  bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    # Phải dùng uvicorn để chạy vì trong bridge.py không có hàm main
+    command: uvicorn bridge:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8002:8000"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER: kafka:9092

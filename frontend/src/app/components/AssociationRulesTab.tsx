@@ -64,7 +64,7 @@ const SUPER_PRODUCTS = Array.from(
   new Set(SUPER_RULES.flatMap((rule) => rule.antecedent))
 ).sort();
 
-export function AssociationRulesTab() {
+export function AssociationRulesTab({ liveData }: { liveData: any }) {
   const [standardSelected, setStandardSelected] = useState<string[]>([]);
   const [superSelected, setSuperSelected] = useState<string[]>([]);
   const [standardResults, setStandardResults] = useState<Rule[]>([]);

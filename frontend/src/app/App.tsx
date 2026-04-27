@@ -15,8 +15,10 @@ export default function App() {
   const [streamData, setStreamData] = useState<any>(null);
 
   // 2. Tách riêng logic kết nối WebSocket
+  // 2. Tách riêng logic kết nối WebSocket
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8000/ws/stream");
+    // Sử dụng window.location.host để ăn theo port hiện tại (3001) và đi qua proxy
+    const socket = new WebSocket(`ws://${window.location.host}/ws/stream`);
 
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
@@ -139,16 +141,23 @@ export default function App() {
             </div>
           </header>
 
-          {/* Tab Content - Truyền liveData vào đây */}
-          <div className="flex-1 overflow-auto p-8">
-            {activeTab === "dashboard1" && <Dashboard1 liveData={streamData} />}
-            {activeTab === "dashboard2" && <Dashboard2 liveData={streamData} />}
-            {activeTab === "rules" && (
+          {/* Tab Content - Giữ nguyên DOM để duy trì streaming bằng CSS hidden */}
+          <div className="flex-1 overflow-auto p-8 relative">
+            <div className={activeTab === "dashboard1" ? "block h-full" : "hidden"}>
+              <Dashboard1 liveData={streamData} />
+            </div>
+            
+            <div className={activeTab === "dashboard2" ? "block h-full" : "hidden"}>
+              <Dashboard2 liveData={streamData} />
+            </div>
+            
+            <div className={activeTab === "rules" ? "block h-full" : "hidden"}>
               <AssociationRulesTab liveData={streamData} />
-            )}
-            {activeTab === "clustering" && (
+            </div>
+            
+            <div className={activeTab === "clustering" ? "block h-full" : "hidden"}>
               <ClusteringTab liveData={streamData} />
-            )}
+            </div>
           </div>
         </main>
       </div>

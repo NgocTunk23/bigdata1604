@@ -22,13 +22,13 @@ interface TransactionData {
 }
 
 const CLUSTER_PROFILES = [
-  { name: 'At Risk', nameVi: 'Vãng lai', color: '#F87171', bgColor: '#FEE2E2' },
-  { name: 'Regular', nameVi: 'Thân thiết', color: '#4ADE80', bgColor: '#D1FAE5' },
-  { name: 'Loyal', nameVi: 'Trung thành', color: '#FCD34D', bgColor: '#FEF3C7' },
-  { name: 'VIP', nameVi: 'VIP', color: '#C084FC', bgColor: '#F3E8FF' },
+  { name: 'At Risk', nameVi: 'Vãng lai', color: '#F87171', bgColor: '#FEE2E2', id: 2 },
+  { name: 'Regular', nameVi: 'Thân thiết', color: '#4ADE80', bgColor: '#D1FAE5', id: 0 },
+  { name: 'Loyal', nameVi: 'Trung thành', color: '#FCD34D', bgColor: '#FEF3C7', id: 1 },
+  { name: 'VIP', nameVi: 'VIP', color: '#C084FC', bgColor: '#F3E8FF', id: 3 },
 ];
 
-export function ClusteringTab() {
+export function ClusteringTab({ liveData }: { liveData: any }) {
   // 1. Data từ clusteringdata.json cho Elbow và Silhouette
   const elbowData = useMemo(() => clusteringData.map((d: any) => ({ k: d.k, wcss: d.wcss })), []);
   const silhouetteData = useMemo(() => clusteringData.map((d: any) => ({ k: d.k, score: d.silhouette })), []);
@@ -51,11 +51,38 @@ export function ClusteringTab() {
     return Math.round(cUsers.reduce((sum: number, u: any) => sum + u[field], 0) / cUsers.length);
   };
 
-  const radarData = useMemo(() => [
-    { metric: 'Độ mới', 'Vãng lai': getAvg(0, 'recency_days'), 'Thân thiết': getAvg(1, 'recency_days'), 'Trung thành': getAvg(2, 'recency_days'), VIP: getAvg(3, 'recency_days') },
-    { metric: 'Tần suất', 'Vãng lai': getAvg(0, 'total_orders'), 'Thân thiết': getAvg(1, 'total_orders'), 'Trung thành': getAvg(2, 'total_orders'), VIP: getAvg(3, 'total_orders') },
-    { metric: 'Giá trị', 'Vãng lai': getAvg(0, 'total_spend'), 'Thân thiết': getAvg(1, 'total_spend'), 'Trung thành': getAvg(2, 'total_spend'), VIP: getAvg(3, 'total_spend') },
-  ], [users]);
+  // 1. Cập nhật hàm tạo radarData có chuẩn hóa dữ liệu
+  const radarData = useMemo(() => {
+    // Tìm max của từng trục
+    const maxR = Math.max(...[0,1,2,3].map(i => getAvg(i, 'recency_days'))) || 1;
+    const maxF = Math.max(...[0,1,2,3].map(i => getAvg(i, 'total_orders'))) || 1;
+    const maxM = Math.max(...[0,1,2,3].map(i => getAvg(i, 'total_spend'))) || 1;
+
+    // Chuẩn hóa về thang 100% theo % max
+    return [
+      {
+        metric: 'Độ mới',
+        [CLUSTER_PROFILES[0].nameVi]: (getAvg(0, 'recency_days') / maxR) * 100,
+        [CLUSTER_PROFILES[1].nameVi]: (getAvg(1, 'recency_days') / maxR) * 100,
+        [CLUSTER_PROFILES[2].nameVi]: (getAvg(2, 'recency_days') / maxR) * 100,
+        [CLUSTER_PROFILES[3].nameVi]: (getAvg(3, 'recency_days') / maxR) * 100,
+      },
+      {
+        metric: 'Tần suất',
+        [CLUSTER_PROFILES[0].nameVi]: (getAvg(0, 'total_orders') / maxF) * 100,
+        [CLUSTER_PROFILES[1].nameVi]: (getAvg(1, 'total_orders') / maxF) * 100,
+        [CLUSTER_PROFILES[2].nameVi]: (getAvg(2, 'total_orders') / maxF) * 100,
+        [CLUSTER_PROFILES[3].nameVi]: (getAvg(3, 'total_orders') / maxF) * 100,
+      },
+      {
+        metric: 'Giá trị',
+        [CLUSTER_PROFILES[0].nameVi]: (getAvg(0, 'total_spend') / maxM) * 100,
+        [CLUSTER_PROFILES[1].nameVi]: (getAvg(1, 'total_spend') / maxM) * 100,
+        [CLUSTER_PROFILES[2].nameVi]: (getAvg(2, 'total_spend') / maxM) * 100,
+        [CLUSTER_PROFILES[3].nameVi]: (getAvg(3, 'total_spend') / maxM) * 100,
+      }
+    ];
+  }, [users]);
 
   const recencyData = CLUSTER_PROFILES.map((p, i) => ({ cluster: p.nameVi, value: getAvg(i, 'recency_days') }));
   const averageOrdersData = CLUSTER_PROFILES.map((p, i) => ({ cluster: p.nameVi, value: getAvg(i, 'total_orders') }));
@@ -72,15 +99,17 @@ export function ClusteringTab() {
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
 
   useEffect(() => {
-    // Kết nối tới WebSocket Server (Kafka Consumer Middleware)
-    const ws = new WebSocket('ws://localhost:8000/ws/clusters');
+    // Tự động ăn theo port hiện tại của React và gọi qua proxy
+    const ws = new WebSocket(`ws://${window.location.host}/ws/clusters`);
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      const profile = CLUSTER_PROFILES[data.cluster] || CLUSTER_PROFILES[0];
+      
+      // Dữ liệu từ ws_server.py gửi data.cluster là các số 0, 1, 2, 3
+      const profile = CLUSTER_PROFILES.find(p => p.id === data.cluster) || CLUSTER_PROFILES[0];
       
       const newTxn: TransactionData = {
-        id: `TXN${Math.floor(Math.random() * 100000)}`, // Random ID cho đẹp mắt hoặc lấy từ data nếu có
+        id: `TXN${Math.floor(Math.random() * 100000)}`,
         customerId: data.CustomerNo,
         totalSpending: Math.round(data.total_spend),
         frequency: data.total_orders,
@@ -92,12 +121,12 @@ export function ClusteringTab() {
       setTransactions((prev) => [newTxn, ...prev].slice(0, 15));
 
       setClusterDistribution((prev) => 
-        prev.map((c, i) => i === data.cluster ? { ...c, value: c.value + 1 } : c)
+        prev.map((c) => c.name === profile.nameVi ? { ...c, value: c.value + 1 } : c)
       );
     };
 
     return () => ws.close();
-  }, []);
+  }, []); // Chỉ chạy 1 lần khi khởi tạo, không bị reset nhờ CSS hidden
 
   const totalDistribution = clusterDistribution.reduce((sum, c) => sum + c.value, 0);
 
@@ -209,14 +238,16 @@ export function ClusteringTab() {
       </div>
 
       {/* Model Evaluation Row */}
-      <div className="grid grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
           <h3 className="text-slate-900 font-semibold text-lg mb-4">Phương pháp Elbow</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={elbowData}>
+          <ResponsiveContainer width="100%" height={280}>
+            {/* Thêm margin ở đây */}
+            <LineChart data={elbowData} margin={{ top: 10, right: 30, left: 20, bottom: 25 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis dataKey="k" label={{ value: 'Số cụm (K)', position: 'insideBottom', offset: -5 }} />
-              <YAxis label={{ value: 'WCSS', angle: -90, position: 'insideLeft' }} />
+              {/* Đổi position thành 'bottom' để không bị lẹm */}
+              <XAxis dataKey="k" label={{ value: 'Số cụm (K)', position: 'bottom', offset: 5 }} />
+              {/* Cấp width={80} cho YAxis để có không gian cho chữ WCSS */}
+              <YAxis width={80} label={{ value: 'WCSS', angle: -90, position: 'insideLeft', offset: -10 }} />
               <Tooltip />
               <Line type="monotone" dataKey="wcss" stroke="#C084FC" strokeWidth={3} dot={{ fill: '#C084FC', r: 5 }} />
             </LineChart>
@@ -225,20 +256,27 @@ export function ClusteringTab() {
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
           <h3 className="text-slate-900 font-semibold text-lg mb-4">Hệ số Silhouette</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={silhouetteData}>
+          <ResponsiveContainer width="100%" height={280}>
+            {/* Thêm margin tương tự */}
+            <LineChart data={silhouetteData} margin={{ top: 10, right: 30, left: 20, bottom: 25 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis dataKey="k" label={{ value: 'Số cụm (K)', position: 'insideBottom', offset: -5 }} />
-              <YAxis label={{ value: 'Silhouette Score', angle: -90, position: 'insideLeft' }} domain={[0, 1]} />
+              <XAxis dataKey="k" label={{ value: 'Số cụm (K)', position: 'bottom', offset: 5 }} />
+              {/* Cấp width={80} cho YAxis */}
+              <YAxis 
+                width={80} 
+                label={{ value: 'Silhouette Score', angle: -90, position: 'insideLeft', offset: -10 }} 
+                domain={['dataMin - 0.05', 'dataMax + 0.05']} 
+                tickFormatter={(tick) => tick.toFixed(2)}
+              />
               <Tooltip />
               <Line type="monotone" dataKey="score" stroke="#4ADE80" strokeWidth={3} dot={{ fill: '#4ADE80', r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </div>
 
       {/* Visual Analysis Row */}
       <div className="grid grid-cols-2 gap-6">
+        {/* Render Scatter Chart tự động theo CLUSTER_PROFILES */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
           <h3 className="text-slate-900 font-semibold text-lg mb-4">Phân bố cụm trong không gian 2D</h3>
           <ResponsiveContainer width="100%" height={320}>
@@ -247,15 +285,15 @@ export function ClusteringTab() {
               <XAxis type="number" dataKey="x" name="Recency" />
               <YAxis type="number" dataKey="y" name="Frequency" />
               <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-              <Scatter data={scatterData.filter(d => d.cluster === 0)} fill="#F87171" name="Vãng lai" />
-              <Scatter data={scatterData.filter(d => d.cluster === 1)} fill="#4ADE80" name="Thân thiết" />
-              <Scatter data={scatterData.filter(d => d.cluster === 2)} fill="#FCD34D" name="Trung thành" />
-              <Scatter data={scatterData.filter(d => d.cluster === 3)} fill="#C084FC" name="VIP" />
+              {[0, 1, 2, 3].map(clusterId => (
+                <Scatter key={clusterId} data={scatterData.filter(d => d.cluster === clusterId)} fill={CLUSTER_PROFILES[clusterId].color} name={CLUSTER_PROFILES[clusterId].nameVi} />
+              ))}
               <Legend />
             </ScatterChart>
           </ResponsiveContainer>
         </div>
 
+        {/* Render Radar Chart tự động theo CLUSTER_PROFILES */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
           <h3 className="text-slate-900 font-semibold text-lg mb-4">Hồ sơ RFM theo cụm</h3>
           <ResponsiveContainer width="100%" height={320}>
@@ -263,10 +301,9 @@ export function ClusteringTab() {
               <PolarGrid stroke="#E2E8F0" />
               <PolarAngleAxis dataKey="metric" />
               <PolarRadiusAxis tick={false} />
-              <Radar name="Vãng lai" dataKey="Vãng lai" stroke="#F87171" fill="#F87171" fillOpacity={0.3} />
-              <Radar name="Thân thiết" dataKey="Thân thiết" stroke="#4ADE80" fill="#4ADE80" fillOpacity={0.3} />
-              <Radar name="Trung thành" dataKey="Trung thành" stroke="#FCD34D" fill="#FCD34D" fillOpacity={0.3} />
-              <Radar name="VIP" dataKey="VIP" stroke="#C084FC" fill="#C084FC" fillOpacity={0.3} />
+              {[0, 1, 2, 3].map(idx => (
+                 <Radar key={idx} name={CLUSTER_PROFILES[idx].nameVi} dataKey={CLUSTER_PROFILES[idx].nameVi} stroke={CLUSTER_PROFILES[idx].color} fill={CLUSTER_PROFILES[idx].color} fillOpacity={0.3} />
+              ))}
               <Legend />
             </RadarChart>
           </ResponsiveContainer>
@@ -277,28 +314,72 @@ export function ClusteringTab() {
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
         <h3 className="text-slate-900 font-semibold text-xl mb-6">So sánh chỉ số RFM giữa các cụm</h3>
         <div className="grid grid-cols-4 gap-6">
+          {/* Biểu đồ 1: Độ mới */}
           <div>
             <h4 className="text-slate-700 font-semibold text-sm mb-3">Độ mới (ngày)</h4>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={recencyData}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="cluster"/><YAxis/><Tooltip/><Bar dataKey="value" fill="#8884d8"><Cell fill="#F87171"/><Cell fill="#4ADE80"/><Cell fill="#FCD34D"/><Cell fill="#C084FC"/></Bar></BarChart>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={recencyData} margin={{ bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3"/>
+                <XAxis dataKey="cluster" interval={0} tick={{ fontSize: 11 }} height={40} />
+                <YAxis width={40} tick={{ fontSize: 11 }} />
+                <Tooltip/>
+                <Bar dataKey="value">
+                  {recencyData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CLUSTER_PROFILES[index].color} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
+          {/* Biểu đồ 2: Tần suất */}
           <div>
             <h4 className="text-slate-700 font-semibold text-sm mb-3">Số đơn trung bình</h4>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={averageOrdersData}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="cluster"/><YAxis/><Tooltip/><Bar dataKey="value" fill="#8884d8"><Cell fill="#F87171"/><Cell fill="#4ADE80"/><Cell fill="#FCD34D"/><Cell fill="#C084FC"/></Bar></BarChart>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={averageOrdersData} margin={{ bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3"/>
+                <XAxis dataKey="cluster" interval={0} tick={{ fontSize: 11 }} height={40} />
+                <YAxis width={40} tick={{ fontSize: 11 }} />
+                <Tooltip/>
+                <Bar dataKey="value">
+                  {averageOrdersData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CLUSTER_PROFILES[index].color} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
+          {/* Biểu đồ 3: Tổng chi tiêu */}
           <div>
             <h4 className="text-slate-700 font-semibold text-sm mb-3">Tổng chi tiêu</h4>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={totalSpendData}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="cluster"/><YAxis/><Tooltip/><Bar dataKey="value" fill="#8884d8"><Cell fill="#F87171"/><Cell fill="#4ADE80"/><Cell fill="#FCD34D"/><Cell fill="#C084FC"/></Bar></BarChart>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={totalSpendData} margin={{ bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3"/>
+                <XAxis dataKey="cluster" interval={0} tick={{ fontSize: 11 }} height={40} />
+                <YAxis width={50} tick={{ fontSize: 11 }} />
+                <Tooltip/>
+                <Bar dataKey="value">
+                  {totalSpendData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CLUSTER_PROFILES[index].color} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
+          {/* Biểu đồ 4: AOV */}
           <div>
             <h4 className="text-slate-700 font-semibold text-sm mb-3">Giá trị TB đơn</h4>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={averageOrderValueData}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="cluster"/><YAxis/><Tooltip/><Bar dataKey="value" fill="#8884d8"><Cell fill="#F87171"/><Cell fill="#4ADE80"/><Cell fill="#FCD34D"/><Cell fill="#C084FC"/></Bar></BarChart>
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={averageOrderValueData} margin={{ bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3"/>
+                <XAxis dataKey="cluster" interval={0} tick={{ fontSize: 11 }} height={40} />
+                <YAxis width={50} tick={{ fontSize: 11 }} />
+                <Tooltip/>
+                <Bar dataKey="value">
+                  {averageOrderValueData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CLUSTER_PROFILES[index].color} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>

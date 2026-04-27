@@ -44,7 +44,7 @@ const getHeatmapColor = (value: number) => {
   return '#EA580C';
 };
 
-export function Dashboard2() {
+export function Dashboard2({ liveData }: { liveData: any }) {
   const [trendData, setTrendData] = useState(
     Array.from({ length: 30 }, (_, i) => ({
       day: i + 1,
