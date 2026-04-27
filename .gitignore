@@ -1,5 +1,4 @@
 /checkpoint_dir
 /algorithms/__pycache__/
 backend/SalesTransaction.csv
-
 frontend/node_modules/

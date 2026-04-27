@@ -1,5 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PieChart, Pie, Cell, LineChart, Line, ScatterChart, Scatter, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+
+// Import data
+import clusteringData from '../../data/clusteringdata.json';
+import rawUsersData from '../../data/clustered_users.jsonl?raw';
 
 interface ClusterData {
   name: string;
@@ -18,172 +22,110 @@ interface TransactionData {
 }
 
 const CLUSTER_PROFILES = [
-  {
-    name: 'At Risk',
-    nameVi: 'Vãng lai',
-    color: '#F87171',
-    bgColor: '#FEE2E2',
-    recency: 245,
-    orders: 12,
-    aov: 450,
-  },
-  {
-    name: 'Regular',
-    nameVi: 'Thân thiết',
-    color: '#4ADE80',
-    bgColor: '#D1FAE5',
-    recency: 45,
-    orders: 28,
-    aov: 680,
-  },
-  {
-    name: 'Loyal',
-    nameVi: 'Trung thành',
-    color: '#FCD34D',
-    bgColor: '#FEF3C7',
-    recency: 15,
-    orders: 52,
-    aov: 890,
-  },
-  {
-    name: 'VIP',
-    nameVi: 'VIP',
-    color: '#C084FC',
-    bgColor: '#F3E8FF',
-    recency: 7,
-    orders: 87,
-    aov: 1250,
-  },
+  { name: 'At Risk', nameVi: 'Vãng lai', color: '#F87171', bgColor: '#FEE2E2' },
+  { name: 'Regular', nameVi: 'Thân thiết', color: '#4ADE80', bgColor: '#D1FAE5' },
+  { name: 'Loyal', nameVi: 'Trung thành', color: '#FCD34D', bgColor: '#FEF3C7' },
+  { name: 'VIP', nameVi: 'VIP', color: '#C084FC', bgColor: '#F3E8FF' },
 ];
-
-const INITIAL_ELBOW_DATA = [
-  { k: 2, wcss: 850 },
-  { k: 3, wcss: 520 },
-  { k: 4, wcss: 280 },
-  { k: 5, wcss: 210 },
-  { k: 6, wcss: 180 },
-  { k: 7, wcss: 165 },
-  { k: 8, wcss: 155 },
-];
-
-const INITIAL_SILHOUETTE_DATA = [
-  { k: 2, score: 0.45 },
-  { k: 3, score: 0.52 },
-  { k: 4, score: 0.68 },
-  { k: 5, score: 0.71 },
-  { k: 6, score: 0.58 },
-  { k: 7, score: 0.49 },
-  { k: 8, score: 0.42 },
-];
-
-const generateScatterData = () => [
-  ...Array.from({ length: 30 }, () => ({ x: Math.random() * 100 + 200, y: Math.random() * 50 + 10, cluster: 0 })),
-  ...Array.from({ length: 40 }, () => ({ x: Math.random() * 80 + 30, y: Math.random() * 40 + 25, cluster: 1 })),
-  ...Array.from({ length: 35 }, () => ({ x: Math.random() * 60 + 10, y: Math.random() * 60 + 45, cluster: 2 })),
-  ...Array.from({ length: 25 }, () => ({ x: Math.random() * 50 + 5, y: Math.random() * 80 + 70, cluster: 3 })),
-];
-
-const generateTransaction = (id: number): TransactionData => {
-  const clusterIdx = Math.floor(Math.random() * 4);
-  const profile = CLUSTER_PROFILES[clusterIdx];
-
-  return {
-    id: `TXN${String(id).padStart(6, '0')}`,
-    customerId: `KH${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`,
-    totalSpending: Math.floor(profile.aov * (0.7 + Math.random() * 0.6)),
-    frequency: Math.floor(profile.orders * (0.7 + Math.random() * 0.6)),
-    recency: Math.floor(profile.recency * (0.7 + Math.random() * 0.6)),
-    cluster: profile.nameVi,
-    clusterColor: profile.color,
-  };
-};
 
 export function ClusteringTab() {
-  const [clusterDistribution, setClusterDistribution] = useState<ClusterData[]>([
-    { name: 'Vãng lai', value: 245, color: '#F87171' },
-    { name: 'Thân thiết', value: 328, color: '#4ADE80' },
-    { name: 'Trung thành', value: 412, color: '#FCD34D' },
-    { name: 'VIP', value: 198, color: '#C084FC' },
-  ]);
+  // 1. Data từ clusteringdata.json cho Elbow và Silhouette
+  const elbowData = useMemo(() => clusteringData.map((d: any) => ({ k: d.k, wcss: d.wcss })), []);
+  const silhouetteData = useMemo(() => clusteringData.map((d: any) => ({ k: d.k, score: d.silhouette })), []);
 
-  const [transactions, setTransactions] = useState<TransactionData[]>(
-    Array.from({ length: 10 }, (_, i) => generateTransaction(i))
-  );
-  const [scatterData, setScatterData] = useState(generateScatterData());
-  const [elbowData, setElbowData] = useState(INITIAL_ELBOW_DATA);
-  const [silhouetteData, setSilhouetteData] = useState(INITIAL_SILHOUETTE_DATA);
-  const [radarData, setRadarData] = useState([
-    { metric: 'Độ mới', 'Vãng lai': 245, 'Thân thiết': 45, 'Trung thành': 15, VIP: 7 },
-    { metric: 'Tần suất', 'Vãng lai': 12, 'Thân thiết': 28, 'Trung thành': 52, VIP: 87 },
-    { metric: 'Giá trị', 'Vãng lai': 450, 'Thân thiết': 680, 'Trung thành': 890, VIP: 1250 },
+  // 2. Parse dữ liệu clustered_users.jsonl cho các biểu đồ phân phối
+  const users = useMemo(() => {
+    return rawUsersData.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+  }, []);
+
+  const scatterData = useMemo(() => users.map((u: any) => ({
+    x: u.recency_days,
+    y: u.total_orders,
+    cluster: u.cluster
+  })), [users]);
+
+  // Hàm tính trung bình cho từng cụm để vẽ Radar và Bar Charts
+  const getAvg = (clusterId: number, field: string) => {
+    const cUsers = users.filter((u: any) => u.cluster === clusterId);
+    if (!cUsers.length) return 0;
+    return Math.round(cUsers.reduce((sum: number, u: any) => sum + u[field], 0) / cUsers.length);
+  };
+
+  const radarData = useMemo(() => [
+    { metric: 'Độ mới', 'Vãng lai': getAvg(0, 'recency_days'), 'Thân thiết': getAvg(1, 'recency_days'), 'Trung thành': getAvg(2, 'recency_days'), VIP: getAvg(3, 'recency_days') },
+    { metric: 'Tần suất', 'Vãng lai': getAvg(0, 'total_orders'), 'Thân thiết': getAvg(1, 'total_orders'), 'Trung thành': getAvg(2, 'total_orders'), VIP: getAvg(3, 'total_orders') },
+    { metric: 'Giá trị', 'Vãng lai': getAvg(0, 'total_spend'), 'Thân thiết': getAvg(1, 'total_spend'), 'Trung thành': getAvg(2, 'total_spend'), VIP: getAvg(3, 'total_spend') },
+  ], [users]);
+
+  const recencyData = CLUSTER_PROFILES.map((p, i) => ({ cluster: p.nameVi, value: getAvg(i, 'recency_days') }));
+  const averageOrdersData = CLUSTER_PROFILES.map((p, i) => ({ cluster: p.nameVi, value: getAvg(i, 'total_orders') }));
+  const totalSpendData = CLUSTER_PROFILES.map((p, i) => ({ cluster: p.nameVi, value: getAvg(i, 'total_spend') }));
+  const averageOrderValueData = CLUSTER_PROFILES.map((p, i) => ({ cluster: p.nameVi, value: getAvg(i, 'avg_order_value') }));
+
+  // 3. Streaming Data (Pie Chart & Table)
+  const [clusterDistribution, setClusterDistribution] = useState<ClusterData[]>([
+    { name: 'Vãng lai', value: 0, color: '#F87171' },
+    { name: 'Thân thiết', value: 0, color: '#4ADE80' },
+    { name: 'Trung thành', value: 0, color: '#FCD34D' },
+    { name: 'VIP', value: 0, color: '#C084FC' },
   ]);
-  const nextIdRef = useRef(10);
+  const [transactions, setTransactions] = useState<TransactionData[]>([]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTransactions((prev) => {
-        const newTxn = generateTransaction(nextIdRef.current);
-        nextIdRef.current += 1;
-        const updated = [newTxn, ...prev].slice(0, 15);
-        return updated;
-      });
+    // Kết nối tới WebSocket Server (Kafka Consumer Middleware)
+    const ws = new WebSocket('ws://localhost:8000/ws/clusters');
 
-      setClusterDistribution((prev) => {
-        return prev.map((cluster) => ({
-          ...cluster,
-          value: cluster.value + Math.floor(Math.random() * 3),
-        }));
-      });
-    }, 3000);
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      const profile = CLUSTER_PROFILES[data.cluster] || CLUSTER_PROFILES[0];
+      
+      const newTxn: TransactionData = {
+        id: `TXN${Math.floor(Math.random() * 100000)}`, // Random ID cho đẹp mắt hoặc lấy từ data nếu có
+        customerId: data.CustomerNo,
+        totalSpending: Math.round(data.total_spend),
+        frequency: data.total_orders,
+        recency: data.recency_days,
+        cluster: profile.nameVi,
+        clusterColor: profile.color,
+      };
 
-    return () => clearInterval(interval);
+      setTransactions((prev) => [newTxn, ...prev].slice(0, 15));
+
+      setClusterDistribution((prev) => 
+        prev.map((c, i) => i === data.cluster ? { ...c, value: c.value + 1 } : c)
+      );
+    };
+
+    return () => ws.close();
   }, []);
 
   const totalDistribution = clusterDistribution.reduce((sum, c) => sum + c.value, 0);
 
-  const recencyData = CLUSTER_PROFILES.map(p => ({ cluster: p.nameVi, value: p.recency }));
-  const averageOrdersData = CLUSTER_PROFILES.map(p => ({ cluster: p.nameVi, value: p.orders }));
-  const totalSpendData = CLUSTER_PROFILES.map(p => ({ cluster: p.nameVi, value: p.orders * p.aov }));
-  const averageOrderValueData = CLUSTER_PROFILES.map(p => ({ cluster: p.nameVi, value: p.aov }));
-
+  // --- HTML RENDER: Có thể tái sử dụng gần như toàn bộ layout cũ của bạn ---
   return (
     <div className="space-y-6">
-      {/* 4 Cluster Profile Cards */}
+      {/* 4 Cluster Profile Cards - Lấy data từ avg tính toán phía trên */}
       <div className="grid grid-cols-4 gap-4">
         {CLUSTER_PROFILES.map((profile, idx) => (
-          <div
-            key={idx}
-            className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
-          >
+          <div key={idx} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
             <div className="h-1.5 bg-gradient-to-r" style={{ backgroundImage: `linear-gradient(to right, ${profile.color}, ${profile.color}CC)` }} />
             <div className="p-5">
               <div className="flex items-center gap-2 mb-4">
-                <div
-                  className="size-3 rounded-full"
-                  style={{ backgroundColor: profile.color }}
-                />
-                <h3 className="text-slate-900" style={{ fontSize: '1.125rem', fontWeight: 700 }}>
-                  {profile.nameVi}
-                </h3>
+                <div className="size-3 rounded-full" style={{ backgroundColor: profile.color }} />
+                <h3 className="text-slate-900 font-bold text-lg">{profile.nameVi}</h3>
               </div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-600" style={{ fontSize: '0.8125rem' }}>Recency</span>
-                  <span className="text-slate-900 font-mono" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
-                    {profile.recency}d
-                  </span>
+                  <span className="text-slate-600 text-sm">Recency</span>
+                  <span className="text-slate-900 font-mono font-semibold text-sm">{getAvg(idx, 'recency_days')}d</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-600" style={{ fontSize: '0.8125rem' }}>Đơn hàng</span>
-                  <span className="text-slate-900 font-mono" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
-                    {profile.orders}
-                  </span>
+                  <span className="text-slate-600 text-sm">Đơn hàng</span>
+                  <span className="text-slate-900 font-mono font-semibold text-sm">{getAvg(idx, 'total_orders')}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-600" style={{ fontSize: '0.8125rem' }}>AOV</span>
-                  <span className="text-slate-900 font-mono" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
-                    {profile.aov.toLocaleString()}k
-                  </span>
+                  <span className="text-slate-600 text-sm">AOV</span>
+                  <span className="text-slate-900 font-mono font-semibold text-sm">{getAvg(idx, 'avg_order_value').toLocaleString()}k</span>
                 </div>
               </div>
             </div>
@@ -191,145 +133,69 @@ export function ClusteringTab() {
         ))}
       </div>
 
-      {/* Distribution Section */}
+      {/* Distribution Section (Streaming from Kafka) */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
         <div className="flex items-center gap-2 mb-6">
-          <h3 className="text-slate-900" style={{ fontWeight: 600, fontSize: '1.25rem' }}>
-            Tỷ Lệ Loại Khách Hàng
-          </h3>
+          <h3 className="text-slate-900 font-semibold text-xl">Tỷ Lệ Loại Khách Hàng</h3>
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 border border-red-200">
             <div className="size-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-red-600" style={{ fontSize: '0.75rem', fontWeight: 600 }}>STREAMING</span>
+            <span className="text-red-600 text-xs font-bold">STREAMING KAFKA</span>
           </div>
         </div>
 
         <div className="grid grid-cols-5 gap-6">
           {/* Pie Chart */}
           <div className="col-span-2">
-            <h4 className="text-slate-700 mb-4" style={{ fontWeight: 600, fontSize: '1rem' }}>
-              Tỷ lệ Cụm khách hàng
-            </h4>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  key="pie"
                   data={clusterDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, payload }) => {
+                  cx="50%" cy="50%"
+                  label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
                     const radius = innerRadius + (outerRadius - innerRadius) * 1.25;
                     const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
                     const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-                    
-                    const darkColors: Record<string, string> = {
-                      '#F87171': '#B91C1C', 
-                      '#4ADE80': '#15803D', 
-                      '#FCD34D': '#B45309', 
-                      '#C084FC': '#7E22CE', 
-                    };
-                    const fillColor = darkColors[payload.color] || '#333333';
-                    const percentage = (percent * 100).toFixed(1);
-
                     return (
-                      <text 
-                        x={x} 
-                        y={y} 
-                        fill={fillColor} 
-                        textAnchor={x > cx ? 'start' : 'end'} 
-                        dominantBaseline="central" 
-                        style={{ fontWeight: 700, fontSize: '0.875rem' }}
-                      >
-                        {percentage}%
+                      <text x={x} y={y} fill="#333" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="font-bold text-sm">
+                        {totalDistribution > 0 ? (percent * 100).toFixed(1) + '%' : ''}
                       </text>
                     );
                   }}
-                  outerRadius={100}
-                  innerRadius={60}
-                  dataKey="value"
-                  animationDuration={800}
+                  outerRadius={100} innerRadius={60} dataKey="value" animationDuration={800}
                 >
                   {clusterDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} stroke="#fff" strokeWidth={3} />
                   ))}
                 </Pie>
-                <Tooltip
-                  key="tooltip"
-                  content={({ active, payload }: any) => {
-                    if (active && payload && payload.length) {
-                      const data = payload[0];
-                      const percentage = ((data.value / totalDistribution) * 100).toFixed(1);
-                      return (
-                        <div className="bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-lg">
-                          <p className="text-slate-900 mb-1" style={{ fontWeight: 600, fontSize: '0.875rem' }}>
-                            {data.name}
-                          </p>
-                          <p className="text-slate-600 font-mono" style={{ fontSize: '0.875rem' }}>
-                            Số lượng: {data.value}
-                          </p>
-                          <p className="text-purple-600 font-mono" style={{ fontSize: '0.875rem', fontWeight: 600 }}>
-                            {percentage}% tổng
-                          </p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
+                <Tooltip />
               </PieChart>
             </ResponsiveContainer>
-            <div className="flex justify-center gap-4 mt-4">
-              {clusterDistribution.map((cluster, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <div className="size-3 rounded-full" style={{ backgroundColor: cluster.color }} />
-                  <span className="text-slate-600" style={{ fontSize: '0.8125rem' }}>{cluster.name}</span>
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* Live Table */}
           <div className="col-span-3">
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
+            <div className="overflow-x-auto rounded-lg border border-slate-200 h-[300px]">
               <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
                   <tr>
-                    <th className="px-3 py-2 text-left text-slate-600" style={{ fontSize: '0.8125rem', fontWeight: 600 }}>Mã GD</th>
-                    <th className="px-3 py-2 text-left text-slate-600" style={{ fontSize: '0.8125rem', fontWeight: 600 }}>Mã KH</th>
-                    <th className="px-3 py-2 text-right text-slate-600" style={{ fontSize: '0.8125rem', fontWeight: 600 }}>Chi tiêu</th>
-                    <th className="px-3 py-2 text-right text-slate-600" style={{ fontSize: '0.8125rem', fontWeight: 600 }}>Tần suất</th>
-                    <th className="px-3 py-2 text-right text-slate-600" style={{ fontSize: '0.8125rem', fontWeight: 600 }}>Độ trễ</th>
-                    <th className="px-3 py-2 text-center text-slate-600" style={{ fontSize: '0.8125rem', fontWeight: 600 }}>Phân loại</th>
+                    <th className="px-3 py-2 text-left text-slate-600 text-sm font-semibold">Mã GD</th>
+                    <th className="px-3 py-2 text-left text-slate-600 text-sm font-semibold">Mã KH</th>
+                    <th className="px-3 py-2 text-right text-slate-600 text-sm font-semibold">Chi tiêu</th>
+                    <th className="px-3 py-2 text-right text-slate-600 text-sm font-semibold">Tần suất</th>
+                    <th className="px-3 py-2 text-right text-slate-600 text-sm font-semibold">Độ trễ</th>
+                    <th className="px-3 py-2 text-center text-slate-600 text-sm font-semibold">Phân loại</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {transactions.slice(0, 10).map((txn, idx) => (
-                    <tr
-                      key={txn.id}
-                      className={`hover:bg-slate-50 transition-colors ${idx === 0 ? 'bg-blue-50/30' : ''}`}
-                    >
-                      <td className="px-3 py-2 text-slate-600 font-mono" style={{ fontSize: '0.8125rem' }}>{txn.id}</td>
-                      <td className="px-3 py-2 text-slate-600 font-mono" style={{ fontSize: '0.8125rem' }}>{txn.customerId}</td>
-                      <td className="px-3 py-2 text-right text-slate-900 font-mono" style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
-                        {txn.totalSpending.toLocaleString()}k
-                      </td>
-                      <td className="px-3 py-2 text-right text-slate-900 font-mono" style={{ fontSize: '0.8125rem' }}>{txn.frequency}</td>
-                      <td className="px-3 py-2 text-right text-slate-900 font-mono" style={{ fontSize: '0.8125rem' }}>{txn.recency}d</td>
+                  {transactions.map((txn, idx) => (
+                    <tr key={`${txn.id}-${idx}`} className={`hover:bg-slate-50 transition-colors ${idx === 0 ? 'bg-blue-50/30' : ''}`}>
+                      <td className="px-3 py-2 text-slate-600 font-mono text-sm">{txn.id}</td>
+                      <td className="px-3 py-2 text-slate-600 font-mono text-sm">{txn.customerId}</td>
+                      <td className="px-3 py-2 text-right text-slate-900 font-mono text-sm font-semibold">{txn.totalSpending.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right text-slate-900 font-mono text-sm">{txn.frequency}</td>
+                      <td className="px-3 py-2 text-right text-slate-900 font-mono text-sm">{txn.recency}d</td>
                       <td className="px-3 py-2 text-center">
-                        <span
-                          className="px-2.5 py-1 rounded-full"
-                          style={{
-                            backgroundColor: txn.clusterColor + '20', // Thêm opacity 20% cho màu nền
-                            color: {
-                              '#F87171': '#B91C1C', 
-                              '#4ADE80': '#15803D', 
-                              '#FCD34D': '#B45309', 
-                              '#C084FC': '#7E22CE', 
-                            }[txn.clusterColor] || '#333333',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                          }}
-                        >
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: txn.clusterColor + '20', color: txn.clusterColor }}>
                           {txn.cluster}
                         </span>
                       </td>
@@ -345,35 +211,27 @@ export function ClusteringTab() {
       {/* Model Evaluation Row */}
       <div className="grid grid-cols-2 gap-6">
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="text-slate-900" style={{ fontWeight: 600, fontSize: '1.125rem' }}>
-              Phương pháp Elbow
-            </h3>
-          </div>
+          <h3 className="text-slate-900 font-semibold text-lg mb-4">Phương pháp Elbow</h3>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={elbowData}>
-              <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis key="xaxis" dataKey="k" label={{ value: 'Số cụm (K)', position: 'insideBottom', offset: -5 }} tick={{ fill: '#64748B', fontSize: 12 }} />
-              <YAxis key="yaxis" label={{ value: 'WCSS', angle: -90, position: 'insideLeft' }} tick={{ fill: '#64748B', fontSize: 12 }} />
-              <Tooltip key="tooltip" />
-              <Line key="line" type="monotone" dataKey="wcss" stroke="#C084FC" strokeWidth={3} dot={{ fill: '#C084FC', r: 5 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+              <XAxis dataKey="k" label={{ value: 'Số cụm (K)', position: 'insideBottom', offset: -5 }} />
+              <YAxis label={{ value: 'WCSS', angle: -90, position: 'insideLeft' }} />
+              <Tooltip />
+              <Line type="monotone" dataKey="wcss" stroke="#C084FC" strokeWidth={3} dot={{ fill: '#C084FC', r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="text-slate-900" style={{ fontWeight: 600, fontSize: '1.125rem' }}>
-              Hệ số Silhouette
-            </h3>
-          </div>
+          <h3 className="text-slate-900 font-semibold text-lg mb-4">Hệ số Silhouette</h3>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={silhouetteData}>
-              <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis key="xaxis" dataKey="k" label={{ value: 'Số cụm (K)', position: 'insideBottom', offset: -5 }} tick={{ fill: '#64748B', fontSize: 12 }} />
-              <YAxis key="yaxis" label={{ value: 'Silhouette Score', angle: -90, position: 'insideLeft' }} tick={{ fill: '#64748B', fontSize: 12 }} domain={[0, 1]} />
-              <Tooltip key="tooltip" />
-              <Line key="line" type="monotone" dataKey="score" stroke="#4ADE80" strokeWidth={3} dot={{ fill: '#4ADE80', r: 5 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+              <XAxis dataKey="k" label={{ value: 'Số cụm (K)', position: 'insideBottom', offset: -5 }} />
+              <YAxis label={{ value: 'Silhouette Score', angle: -90, position: 'insideLeft' }} domain={[0, 1]} />
+              <Tooltip />
+              <Line type="monotone" dataKey="score" stroke="#4ADE80" strokeWidth={3} dot={{ fill: '#4ADE80', r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -381,129 +239,66 @@ export function ClusteringTab() {
 
       {/* Visual Analysis Row */}
       <div className="grid grid-cols-2 gap-6">
-        {/* Scatter Plot */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="text-slate-900" style={{ fontWeight: 600, fontSize: '1.125rem' }}>
-              Phân bố cụm trong không gian 2D
-            </h3>
-          </div>
+          <h3 className="text-slate-900 font-semibold text-lg mb-4">Phân bố cụm trong không gian 2D</h3>
           <ResponsiveContainer width="100%" height={320}>
             <ScatterChart>
-              <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis key="xaxis" type="number" dataKey="x" name="Recency" label={{ value: 'Recency (ngày)', position: 'insideBottom', offset: -5 }} tick={{ fill: '#64748B', fontSize: 12 }} />
-              <YAxis key="yaxis" type="number" dataKey="y" name="Frequency" label={{ value: 'Frequency', angle: -90, position: 'insideLeft' }} tick={{ fill: '#64748B', fontSize: 12 }} />
-              <Tooltip key="tooltip" cursor={{ strokeDasharray: '3 3' }} />
-              <Scatter key="scatter0" data={scatterData.filter(d => d.cluster === 0)} fill="#F87171" shape="circle" name="Vãng lai" />
-              <Scatter key="scatter1" data={scatterData.filter(d => d.cluster === 1)} fill="#4ADE80" shape="circle" name="Thân thiết" />
-              <Scatter key="scatter2" data={scatterData.filter(d => d.cluster === 2)} fill="#FCD34D" shape="circle" name="Trung thành" />
-              <Scatter key="scatter3" data={scatterData.filter(d => d.cluster === 3)} fill="#C084FC" shape="circle" name="VIP" />
-              <Legend key="legend" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+              <XAxis type="number" dataKey="x" name="Recency" />
+              <YAxis type="number" dataKey="y" name="Frequency" />
+              <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+              <Scatter data={scatterData.filter(d => d.cluster === 0)} fill="#F87171" name="Vãng lai" />
+              <Scatter data={scatterData.filter(d => d.cluster === 1)} fill="#4ADE80" name="Thân thiết" />
+              <Scatter data={scatterData.filter(d => d.cluster === 2)} fill="#FCD34D" name="Trung thành" />
+              <Scatter data={scatterData.filter(d => d.cluster === 3)} fill="#C084FC" name="VIP" />
+              <Legend />
             </ScatterChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Radar Chart */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="text-slate-900" style={{ fontWeight: 600, fontSize: '1.125rem' }}>
-              Hồ sơ RFM theo cụm
-            </h3>
-          </div>
+          <h3 className="text-slate-900 font-semibold text-lg mb-4">Hồ sơ RFM theo cụm</h3>
           <ResponsiveContainer width="100%" height={320}>
             <RadarChart data={radarData}>
-              <PolarGrid key="grid" stroke="#E2E8F0" />
-              <PolarAngleAxis key="angle" dataKey="metric" tick={{ fill: '#64748B', fontSize: 12 }} />
-              <PolarRadiusAxis key="radius" tick={false} />
-              <Radar key="radar0" name="Vãng lai" dataKey="Vãng lai" stroke="#F87171" fill="#F87171" fillOpacity={0.3} />
-              <Radar key="radar1" name="Thân thiết" dataKey="Thân thiết" stroke="#4ADE80" fill="#4ADE80" fillOpacity={0.3} />
-              <Radar key="radar2" name="Trung thành" dataKey="Trung thành" stroke="#FCD34D" fill="#FCD34D" fillOpacity={0.3} />
-              <Radar key="radar3" name="VIP" dataKey="VIP" stroke="#C084FC" fill="#C084FC" fillOpacity={0.3} />
-              <Legend key="legend" />
+              <PolarGrid stroke="#E2E8F0" />
+              <PolarAngleAxis dataKey="metric" />
+              <PolarRadiusAxis tick={false} />
+              <Radar name="Vãng lai" dataKey="Vãng lai" stroke="#F87171" fill="#F87171" fillOpacity={0.3} />
+              <Radar name="Thân thiết" dataKey="Thân thiết" stroke="#4ADE80" fill="#4ADE80" fillOpacity={0.3} />
+              <Radar name="Trung thành" dataKey="Trung thành" stroke="#FCD34D" fill="#FCD34D" fillOpacity={0.3} />
+              <Radar name="VIP" dataKey="VIP" stroke="#C084FC" fill="#C084FC" fillOpacity={0.3} />
+              <Legend />
             </RadarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* RFM Comparison - 4 separate charts */}
+      {/* RFM Comparison */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-        <h3 className="text-slate-900 mb-6" style={{ fontWeight: 600, fontSize: '1.25rem' }}>
-          So sánh chỉ số RFM giữa các cụm
-        </h3>
+        <h3 className="text-slate-900 font-semibold text-xl mb-6">So sánh chỉ số RFM giữa các cụm</h3>
         <div className="grid grid-cols-4 gap-6">
-          {/* Recency */}
           <div>
-            <h4 className="text-slate-700 mb-3" style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Độ mới (ngày)</h4>
+            <h4 className="text-slate-700 font-semibold text-sm mb-3">Độ mới (ngày)</h4>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={recencyData}>
-                <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis key="xaxis" dataKey="cluster" tick={{ fill: '#64748B', fontSize: 11 }} />
-                <YAxis key="yaxis" tick={{ fill: '#64748B', fontSize: 11 }} />
-                <Tooltip key="tooltip" />
-                <Bar key="bar" dataKey="value" radius={[8, 8, 0, 0]}>
-                  {recencyData.map((entry, index) => {
-                    const color = clusterDistribution.find(c => c.name === entry.cluster)?.color || '#CBD5E1';
-                    return <Cell key={`cell-${index}`} fill={color} />;
-                  })}
-                </Bar>
-              </BarChart>
+              <BarChart data={recencyData}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="cluster"/><YAxis/><Tooltip/><Bar dataKey="value" fill="#8884d8"><Cell fill="#F87171"/><Cell fill="#4ADE80"/><Cell fill="#FCD34D"/><Cell fill="#C084FC"/></Bar></BarChart>
             </ResponsiveContainer>
           </div>
-
-          {/* Average Orders */}
           <div>
-            <h4 className="text-slate-700 mb-3" style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Số đơn trung bình</h4>
+            <h4 className="text-slate-700 font-semibold text-sm mb-3">Số đơn trung bình</h4>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={averageOrdersData}>
-                <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis key="xaxis" dataKey="cluster" tick={{ fill: '#64748B', fontSize: 11 }} />
-                <YAxis key="yaxis" tick={{ fill: '#64748B', fontSize: 11 }} />
-                <Tooltip key="tooltip" />
-                <Bar key="bar" dataKey="value" radius={[8, 8, 0, 0]}>
-                  {averageOrdersData.map((entry, index) => {
-                    const color = clusterDistribution.find(c => c.name === entry.cluster)?.color || '#CBD5E1';
-                    return <Cell key={`cell-${index}`} fill={color} />;
-                  })}
-                </Bar>
-              </BarChart>
+              <BarChart data={averageOrdersData}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="cluster"/><YAxis/><Tooltip/><Bar dataKey="value" fill="#8884d8"><Cell fill="#F87171"/><Cell fill="#4ADE80"/><Cell fill="#FCD34D"/><Cell fill="#C084FC"/></Bar></BarChart>
             </ResponsiveContainer>
           </div>
-
-          {/* Total Spend */}
           <div>
-            <h4 className="text-slate-700 mb-3" style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Tổng chi tiêu</h4>
+            <h4 className="text-slate-700 font-semibold text-sm mb-3">Tổng chi tiêu</h4>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={totalSpendData}>
-                <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis key="xaxis" dataKey="cluster" tick={{ fill: '#64748B', fontSize: 11 }} />
-                <YAxis key="yaxis" tick={{ fill: '#64748B', fontSize: 11 }} />
-                <Tooltip key="tooltip" formatter={(value: number) => value.toLocaleString()} />
-                <Bar key="bar" dataKey="value" radius={[8, 8, 0, 0]}>
-                  {totalSpendData.map((entry, index) => {
-                    const color = clusterDistribution.find(c => c.name === entry.cluster)?.color || '#CBD5E1';
-                    return <Cell key={`cell-${index}`} fill={color} />;
-                  })}
-                </Bar>
-              </BarChart>
+              <BarChart data={totalSpendData}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="cluster"/><YAxis/><Tooltip/><Bar dataKey="value" fill="#8884d8"><Cell fill="#F87171"/><Cell fill="#4ADE80"/><Cell fill="#FCD34D"/><Cell fill="#C084FC"/></Bar></BarChart>
             </ResponsiveContainer>
           </div>
-
-          {/* Average Order Value */}
           <div>
-            <h4 className="text-slate-700 mb-3" style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Giá trị TB đơn</h4>
+            <h4 className="text-slate-700 font-semibold text-sm mb-3">Giá trị TB đơn</h4>
             <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={averageOrderValueData}>
-                <CartesianGrid key="grid" strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis key="xaxis" dataKey="cluster" tick={{ fill: '#64748B', fontSize: 11 }} />
-                <YAxis key="yaxis" tick={{ fill: '#64748B', fontSize: 11 }} />
-                <Tooltip key="tooltip" formatter={(value: number) => value.toLocaleString()} />
-                <Bar key="bar" dataKey="value" radius={[8, 8, 0, 0]}>
-                  {averageOrderValueData.map((entry, index) => {
-                    const color = clusterDistribution.find(c => c.name === entry.cluster)?.color || '#CBD5E1';
-                    return <Cell key={`cell-${index}`} fill={color} />;
-                  })}
-                </Bar>
-              </BarChart>
+              <BarChart data={averageOrderValueData}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="cluster"/><YAxis/><Tooltip/><Bar dataKey="value" fill="#8884d8"><Cell fill="#F87171"/><Cell fill="#4ADE80"/><Cell fill="#FCD34D"/><Cell fill="#C084FC"/></Bar></BarChart>
             </ResponsiveContainer>
           </div>
         </div>

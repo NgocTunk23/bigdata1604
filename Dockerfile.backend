@@ -1,0 +1,15 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Cài đặt các thư viện cần thiết
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source code backend
+COPY ./backend .
+
+# Khai báo biến môi trường mặc định
+ENV PYTHONUNBUFFERED=1
+
+# Script khởi chạy sẽ được chỉ định qua 'command' trong docker-compose
