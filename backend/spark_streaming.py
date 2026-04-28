@@ -4,7 +4,7 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType
 
 # --- CẤU HÌNH KAFKA & ĐƯỜNG DẪN ---
-KAFKA_BROKER = os.getenv('KAFKA_BROKER', 'localhost:9092') # Thay bằng 'kafka:9092' nếu chạy trong Docker
+KAFKA_BROKER = os.getenv('KAFKA_BROKER', 'localhost:29092') # Thay bằng 'kafka:9092' nếu chạy trong Docker
 TOPIC_INPUT = 'live_transactions'
 TOPIC_TOP_PRODUCTS = 'top_products'
 TOPIC_CLUSTERS = 'customer_clusters'

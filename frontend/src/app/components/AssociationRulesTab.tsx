@@ -1,17 +1,25 @@
-import { useState } from "react";
-import { X, Sparkles, ChevronRight, TrendingUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Sparkles, ChevronRight, TrendingUp, Activity } from "lucide-react";
 
 // Import trực tiếp dữ liệu từ file JSON
 import standardRulesData from "../../data/association_rules.json";
 import superRulesData from "../../data/association_rules_super.json";
 
 interface Rule {
-  id: string; // Đổi sang string để tránh trùng lặp ID
+  id: string;
   antecedent: string[];
   consequent: string[];
   support: number;
   confidence: number;
   lift: number;
+}
+
+// Định nghĩa interface cho luồng Streaming
+interface StreamRecord {
+  TransactionNo: string;
+  CustomerNo: string;
+  CartItem: string;
+  Recommendations: string[];
 }
 
 // Hàm hỗ trợ so sánh 2 mảng (để lọc rule trùng)
@@ -34,6 +42,17 @@ const STANDARD_RULES: Rule[] = standardRulesData.map(
   }),
 );
 
+const SUPER_RULES_FULL: Rule[] = superRulesData.map(
+  (rule: any, idx: number) => ({
+    id: `std-${idx}`,
+    antecedent: rule.antecedent,
+    consequent: rule.consequent,
+    support: rule.support,
+    confidence: rule.confidence,
+    lift: rule.lift,
+  }),
+);
+
 // Map dữ liệu SUPER và LỌC bỏ các dòng đã tồn tại trong STANDARD_RULES
 const SUPER_RULES: Rule[] = superRulesData
   .map((rule: any, idx: number) => ({
@@ -45,7 +64,7 @@ const SUPER_RULES: Rule[] = superRulesData
     lift: rule.lift,
   }))
   .filter((superRule) => {
-    // Kiểm tra xem có luật nào trong STANDARD_RULES giống y hệt (cùng tập antecedent và consequent)
+    // Kiểm tra xem có luật nào trong STANDARD_RULES giống y hệt
     const isDuplicate = STANDARD_RULES.some(
       (stdRule) =>
         arraysEqual(stdRule.antecedent, superRule.antecedent) &&
@@ -55,7 +74,7 @@ const SUPER_RULES: Rule[] = superRulesData
     return !isDuplicate;
   });
 
-// Trích xuất tự động danh sách các sản phẩm từ thuộc tính 'antecedent' (loại bỏ trùng lặp)
+// Trích xuất tự động danh sách các sản phẩm từ thuộc tính 'antecedent'
 const STANDARD_PRODUCTS = Array.from(
   new Set(STANDARD_RULES.flatMap((rule) => rule.antecedent))
 ).sort();
@@ -64,12 +83,68 @@ const SUPER_PRODUCTS = Array.from(
   new Set(SUPER_RULES.flatMap((rule) => rule.antecedent))
 ).sort();
 
+const SUPER_PRODUCTS_FULL = Array.from(
+  new Set(SUPER_RULES_FULL.flatMap((rule) => rule.antecedent))
+).sort();
+
 export function AssociationRulesTab() {
+  // --- STATE CŨ CỦA BẠN ---
   const [standardSelected, setStandardSelected] = useState<string[]>([]);
   const [superSelected, setSuperSelected] = useState<string[]>([]);
   const [standardResults, setStandardResults] = useState<Rule[]>([]);
   const [superResults, setSuperResults] = useState<Rule[]>([]);
 
+  // --- STATE MỚI CHO STREAMING ---
+  const [liveStream, setLiveStream] = useState<StreamRecord[]>([]);
+
+  // --- LOGIC STREAMING QUA WEBSOCKET ---
+  useEffect(() => {
+    const ws = new WebSocket('ws://localhost:8000/ws/dashboard');
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        // Bỏ qua nếu giao dịch thiếu thông tin
+        if (!data.CustomerNo || !data.ProductName) return;
+
+        const currentItem = data.ProductName;
+
+        // Tra cứu vào file luật Super để lấy gợi ý tốt nhất
+        const matchedRules = superRulesData.filter((rule: any) => {
+          if (Array.isArray(rule.antecedent)) {
+            return rule.antecedent.includes(currentItem);
+          }
+          return rule.antecedent === currentItem;
+        });
+
+        let recommendedProducts: string[] = [];
+        if (matchedRules.length > 0) {
+          const allConsequents = matchedRules.flatMap((r: any) => r.consequent);
+          recommendedProducts = Array.from(new Set(allConsequents));
+        }
+
+        // Cập nhật state, đưa dòng mới nhất lên đầu (chỉ giữ 15 dòng để không lag)
+        setLiveStream((prev) => {
+          const newRecord: StreamRecord = {
+            TransactionNo: data.TransactionNo,
+            CustomerNo: data.CustomerNo,
+            CartItem: currentItem,
+            Recommendations: recommendedProducts,
+          };
+          return [newRecord, ...prev].slice(0, 15);
+        });
+      } catch (err) {
+        console.error("Lỗi parse dữ liệu WebSocket:", err);
+      }
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, []);
+
+  // --- LOGIC CŨ CỦA BẠN ---
   const toggleStandardProduct = (product: string) => {
     setStandardSelected((prev) =>
       prev.includes(product)
@@ -99,8 +174,6 @@ export function AssociationRulesTab() {
       setStandardResults([]);
       return;
     }
-
-    // Lọc các luật có chứa sản phẩm gốc trong giỏ hàng
     const filtered = STANDARD_RULES.filter((rule) =>
       standardSelected.some((p) => rule.antecedent.includes(p)),
     );
@@ -112,8 +185,6 @@ export function AssociationRulesTab() {
       setSuperResults([]);
       return;
     }
-
-    // Lọc các luật có chứa sản phẩm gốc trong giỏ hàng
     const filtered = SUPER_RULES.filter((rule) =>
       superSelected.some((p) => rule.antecedent.includes(p)),
     );
@@ -122,8 +193,83 @@ export function AssociationRulesTab() {
 
   return (
     <div className="space-y-8">
+
       {/* ========================================== */}
-      {/* MÔ HÌNH TIÊU CHUẨN - PINK PASTEL             */}
+      {/* 1. MÔ HÌNH REAL-TIME (STREAMING) - BLUE PASTEL */}
+      {/* ========================================== */}
+      <div className="space-y-6">
+        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200 shadow-sm relative overflow-hidden">
+          <div className="flex items-center gap-3 mb-2 relative z-10">
+            <div className="p-2 rounded-lg bg-blue-200 relative">
+              {/* Hiệu ứng nhấp nháy báo hiệu đang Stream */}
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75 top-0 left-0"></span>
+              <Activity className="size-5 text-blue-800 relative z-10" />
+            </div>
+            <h2 className="text-blue-900" style={{ fontSize: "1.5rem", fontWeight: 700 }}>
+              Real-time Association
+            </h2>
+          </div>
+          <p className="text-blue-700 relative z-10" style={{ fontSize: "0.875rem" }}>
+            Giám sát trực tiếp giỏ hàng đang giao dịch và tra cứu tập luật để gợi ý sản phẩm ngay lập tức.
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl border-2 border-blue-200 shadow-md overflow-hidden">
+          <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+            <table className="w-full text-left">
+              <thead className="bg-blue-50/80 border-b border-blue-200 sticky top-0 z-10 backdrop-blur-sm">
+                <tr>
+                  <th className="px-6 py-4 text-blue-800" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Mã Giao dịch</th>
+                  <th className="px-6 py-4 text-blue-800" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Mã Khách hàng</th>
+                  <th className="px-6 py-4 text-blue-800" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Sản phẩm trong giỏ</th>
+                  <th className="px-6 py-4 text-blue-800 bg-blue-100/50 border-l border-blue-200" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Sản phẩm gợi ý (Tra cứu Real-time)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-blue-50">
+                {liveStream.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-10 text-center text-blue-400 font-medium animate-pulse">
+                      Đang lắng nghe luồng giao dịch từ Kafka...
+                    </td>
+                  </tr>
+                ) : (
+                  liveStream.map((record, idx) => (
+                    <tr 
+                      key={idx} 
+                      className={`transition-colors duration-500 ${idx === 0 ? 'bg-green-50/40' : 'hover:bg-slate-50'}`}
+                    >
+                      <td className="px-6 py-3 font-mono text-slate-700" style={{ fontSize: "0.875rem" }}>{record.TransactionNo}</td>
+                      <td className="px-6 py-3 font-mono text-slate-500" style={{ fontSize: "0.875rem" }}>{record.CustomerNo}</td>
+                      <td className="px-6 py-3 font-medium text-slate-800" style={{ fontSize: "0.875rem" }}>{record.CartItem}</td>
+                      <td className="px-6 py-3 border-l border-blue-50">
+                        {record.Recommendations.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {record.Recommendations.map((rec, i) => (
+                              <span 
+                                key={i} 
+                                className="px-2 py-1 bg-blue-100 text-blue-700 rounded-md shadow-sm border border-blue-200"
+                                style={{ fontSize: "0.75rem", fontWeight: 600 }}
+                              >
+                                + {rec}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic text-xs">Chưa có luật khớp</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+
+      {/* ========================================== */}
+      {/* 2. MÔ HÌNH TIÊU CHUẨN - PINK PASTEL          */}
       {/* ========================================== */}
       <div className="space-y-6">
         <div className="bg-gradient-to-r from-pink-50 to-rose-50 rounded-2xl p-6 border border-pink-200">
@@ -344,7 +490,7 @@ export function AssociationRulesTab() {
       </div>
 
       {/* ========================================== */}
-      {/* MÔ HÌNH SUPER - PURPLE PASTEL                */}
+      {/* 3. MÔ HÌNH SUPER - PURPLE PASTEL             */}
       {/* ========================================== */}
       <div className="space-y-6">
         <div className="bg-gradient-to-r from-purple-50 to-fuchsia-50 rounded-2xl p-6 border border-purple-200">
