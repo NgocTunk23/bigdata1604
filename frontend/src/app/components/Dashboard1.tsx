@@ -81,7 +81,7 @@ export function Dashboard1() {
       {/* Biểu đồ luồng giao dịch */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
         <h3 className="text-slate-900 text-xl font-semibold mb-6 flex items-center gap-2">
-          Dữ liệu luồng giao dịch
+          Dữ liệu giao dịch
           <span className="bg-red-50 text-red-600 text-xs px-2 py-1 rounded-full animate-pulse border border-red-200">LIVE</span>
         </h3>
         <ResponsiveContainer width="100%" height={350}>
@@ -101,15 +101,30 @@ export function Dashboard1() {
 
       {/* Biểu đồ Top Sản phẩm */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-        <h3 className="text-slate-900 text-xl font-semibold mb-6">Top Sản phẩm bán chạy nhất</h3>
+        <h3 className="text-slate-900 text-xl font-semibold mb-6 flex items-center gap-2">Top Sản phẩm bán chạy
+           <span className="bg-red-50 text-red-600 text-xs px-2 py-1 rounded-full animate-pulse border border-red-200">LIVE</span>
+        </h3>
         <ResponsiveContainer width="100%" height={450}>
           <BarChart data={topProducts} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 30 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
             <XAxis type="number">
               <Label value="Số lượng bán ra" offset={-15} position="insideBottom" fill="#64748B" />
             </XAxis>
-            <YAxis type="category" dataKey="name" tick={{ fill: '#64748B', fontSize: 10 }} width={150}>
-              <Label value="Tên sản phẩm" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} fill="#64748B" />
+            <YAxis 
+              type="category" 
+              dataKey="name" 
+              // 1. Tăng fontSize từ 10 lên 14 hoặc 16 tùy nhu cầu
+              tick={{ fill: '#64748B', fontSize: 14, fontWeight: 500 }} 
+              // 2. Tăng width từ 150 lên 200 để có không gian cho chữ to
+              width={200} 
+            >
+              <Label 
+                value="Tên sản phẩm" 
+                angle={-90} 
+                position="insideLeft" 
+                // Tăng kích thước tiêu đề trục nếu muốn
+                style={{ textAnchor: 'middle', fontSize: '18px', fill: '#64748B' }} 
+              />
             </YAxis>
             <Tooltip />
             <Bar dataKey="sales" radius={[0, 4, 4, 0]} isAnimationActive={false}>

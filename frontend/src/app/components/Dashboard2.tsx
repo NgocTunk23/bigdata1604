@@ -59,7 +59,9 @@ export function Dashboard2() {
     <div className="space-y-6">
       {/* Xu hướng đơn hàng theo ngày */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-        <h3 className="text-slate-900 text-xl font-semibold mb-6">Xu hướng mua sắm theo ngày</h3>
+        <h3 className="text-slate-900 text-xl font-semibold mb-6 flex items-center gap-2">Xu hướng mua sắm theo ngày trong tháng
+            <span className="bg-red-50 text-red-600 text-xs px-2 py-1 rounded-full animate-pulse border border-red-200">LIVE</span>
+        </h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={trendData} margin={{ bottom: 20, left: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
@@ -77,15 +79,17 @@ export function Dashboard2() {
 
       {/* Mua sắm theo thứ */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-        <h3 className="text-slate-900 text-xl font-semibold mb-6">Xu hướng mua sắm theo thứ trong tuần</h3>
+        <h3 className="text-slate-900 text-xl font-semibold mb-6 flex items-center gap-2">Xu hướng mua sắm theo thứ trong tuần
+            <span className="bg-red-50 text-red-600 text-xs px-2 py-1 rounded-full animate-pulse border border-red-200">LIVE</span>
+        </h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={weekdayData} margin={{ bottom: 20, left: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
             <XAxis dataKey="day" tick={{ fill: '#64748B' }}>
-              <Label value="Thứ" offset={-10} position="insideBottom" fill="#64748B" />
+              <Label value="Thứ trong tuần" offset={-10} position="insideBottom" fill="#64748B" />
             </XAxis>
             <YAxis tick={{ fill: '#64748B' }}>
-              <Label value="Số lượng" angle={-90} position="insideLeft" fill="#64748B" />
+              <Label value="Số đơn hàng" angle={-90} position="insideLeft" fill="#64748B" />
             </YAxis>
             <Tooltip />
             <Bar dataKey="orders" fill="#86EFAC" radius={[4, 4, 0, 0]} isAnimationActive={false} />

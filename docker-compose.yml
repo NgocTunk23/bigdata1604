@@ -26,20 +26,7 @@ services:
       timeout: 5s
       retries: 5
 
-  kafka-producer:
-    build: 
-      context: .
-      dockerfile: Dockerfile.backend
-    command: python producer.py
-    depends_on:
-      kafka:
-        condition: service_healthy # Chỉ chạy khi Kafka đã pass healthcheck
-    volumes:
-      - ./data/results:/app/data/results
-    environment:
-      KAFKA_BROKER: kafka:9092
-      TOPIC_NAME: customer_clusters
-      DATA_SOURCE: /app/data/results/clustered_users.jsonl # Trỏ trực tiếp vào file cụ thể
+
 
   streaming-server:
     build:
@@ -65,28 +52,15 @@ services:
     # Lệnh cài đặt và chạy dev server
     command: >
       sh -c "npm install && npm run dev -- --port 3001 --host"
-    depends_on:
-      - bridge
   
-  bridge:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
-    # Phải dùng uvicorn để chạy vì trong bridge.py không có hàm main
-    command: uvicorn bridge:app --host 0.0.0.0 --port 8000
-    ports:
-      - "8002:8000"
-    depends_on:
-      kafka:
-        condition: service_healthy
-    environment:
-      KAFKA_BROKER: kafka:9092
     
-  simulator:
+  merged-producer:
     build: 
       context: .
       dockerfile: Dockerfile.backend
-    command: python simulator.py
+    command: python merged_producer.py
+    ports:
+      - "8003:8003" # Ánh xạ cổng API tốc độ ra máy ngoài
     depends_on:
       kafka:
         condition: service_healthy
@@ -94,3 +68,5 @@ services:
       - ./data/results:/app/data/results
     environment:
       KAFKA_BROKER: kafka:9092
+      TOPIC_NAME: customer_clusters
+      DATA_SOURCE: /app/data/results/clustered_users.jsonl

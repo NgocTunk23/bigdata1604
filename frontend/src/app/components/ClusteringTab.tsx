@@ -165,7 +165,9 @@ export const ClusteringTab = React.memo(function ClusteringTab({ liveData }: { l
 
       {/* Distribution & Live Table */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-        <h3 className="text-slate-900 font-semibold text-xl mb-6">Tỷ Lệ Loại Khách Hàng (Stream)</h3>
+        <h3 className="text-slate-900 font-semibold text-xl mb-6 flex items-center gap-2">Tỷ Lệ Loại Khách Hàng
+            <span className="bg-red-50 text-red-600 text-xs px-2 py-1 rounded-full animate-pulse border border-red-200">LIVE</span>
+        </h3>
         <div className="grid grid-cols-5 gap-6">
           <div className="col-span-2">
             <ResponsiveContainer width="100%" height={300}>
