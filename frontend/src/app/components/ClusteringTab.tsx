@@ -17,7 +17,7 @@ interface ClusterData {
 }
 
 interface TransactionData {
-  id: string;
+  internalKey: string; // Khóa ẩn dùng riêng cho React render
   customerId: string;
   totalSpending: number;
   frequency: number;
@@ -26,7 +26,7 @@ interface TransactionData {
   clusterColor: string;
 }
 
-// 1. Đã sửa lại thứ tự ID và đổi màu "Ngủ đông" thành màu cam (#F97316)
+// Đã sửa lại thứ tự ID và đổi màu "Ngủ đông" thành màu cam (#F97316)
 const CLUSTER_PROFILES = [
   { name: 'At Risk', nameVi: 'Vãng lai', color: '#F87171', bgColor: '#FEE2E2', id: 0 }, 
   { name: 'Potential', nameVi: 'Tiềm năng', color: '#228B22', bgColor: '#D1FAE5', id: 1 }, 
@@ -90,7 +90,7 @@ export const ClusteringTab = React.memo(function ClusteringTab({ liveData }: { l
   const totalSpendData = CLUSTER_PROFILES.map((p, i) => ({ cluster: p.nameVi, value: getAvg(i, 'total_spend') }));
   const averageOrderValueData = CLUSTER_PROFILES.map((p, i) => ({ cluster: p.nameVi, value: getAvg(i, 'avg_order_value') }));
 
-  // 2. Cập nhật thứ tự và màu sắc khởi tạo
+  // Cập nhật thứ tự và màu sắc khởi tạo
   const [clusterDistribution, setClusterDistribution] = useState<ClusterData[]>([
     { name: 'Vãng lai', value: 0, color: '#F87171' },
     { name: 'Tiềm năng', value: 0, color: '#228B22' },
@@ -106,7 +106,7 @@ export const ClusteringTab = React.memo(function ClusteringTab({ liveData }: { l
       const profile = CLUSTER_PROFILES.find(p => p.id === data.cluster) || CLUSTER_PROFILES[0];
       
       const newTxn: TransactionData = {
-        id: `TXN${Math.floor(Math.random() * 100000)}`,
+        internalKey: `key-${Date.now()}-${Math.random()}`, // Key ẩn thay thế cho id giả
         customerId: data.CustomerNo,
         totalSpending: Math.round(data.total_spend),
         frequency: data.total_orders,
@@ -184,7 +184,7 @@ export const ClusteringTab = React.memo(function ClusteringTab({ liveData }: { l
               </PieChart>
             </ResponsiveContainer>
             
-            {/* 3. Phần chú thích thêm mới */}
+            {/* Phần chú thích thêm mới */}
             <div className="mt-4 px-4 space-y-2">
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 {clusterDistribution.map((entry, index) => (
@@ -209,16 +209,14 @@ export const ClusteringTab = React.memo(function ClusteringTab({ liveData }: { l
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
                   <tr>
-                    <th className="px-3 py-2 text-left text-sm font-semibold">Mã Giao dịch</th>
                     <th className="px-3 py-2 text-left text-sm font-semibold">Mã Khách hàng</th>
                     <th className="px-3 py-2 text-right text-sm font-semibold">Chi tiêu</th>
                     <th className="px-3 py-2 text-center text-sm font-semibold">Phân loại</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {transactions.map((txn, idx) => (
-                    <tr key={`${txn.id}-${idx}`} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-3 py-2 font-mono text-sm">{txn.id}</td>
+                  {transactions.map((txn) => (
+                    <tr key={txn.internalKey} className="hover:bg-slate-50 transition-colors">
                       <td className="px-3 py-2 font-mono text-sm">{txn.customerId}</td>
                       <td className="px-3 py-2 text-right font-mono text-sm font-semibold">{txn.totalSpending.toLocaleString()}</td>
                       <td className="px-3 py-2 text-center">

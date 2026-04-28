@@ -39,7 +39,7 @@ services:
     environment:
       KAFKA_BROKER: kafka:9092
       TOPIC_NAME: customer_clusters
-      DATA_SOURCE: /app/data/results/clustered_users.parquet/part-00000-a026af0d-038b-457e-9787-32462b560651-c000.snappy.parquet # Trỏ trực tiếp vào file cụ thể
+      DATA_SOURCE: /app/data/results/clustered_users.jsonl # Trỏ trực tiếp vào file cụ thể
 
   streaming-server:
     build:
