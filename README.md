@@ -1,5 +1,3 @@
-Cổng chạy
-http://localhost:8501/
 Thấy cái file association.js và associationsuper.js không, nó chứa luật sinh á, nhưng 1 thằng là hàm thường, 1 thằng tối ưu.
 
 Dữ liệu của cluster nằm trong clustered_users.parquet

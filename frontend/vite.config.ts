@@ -25,12 +25,18 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        target: "http://bridge:8000",
         changeOrigin: true,
       },
-      "/ws": {
-        target: "ws://localhost:8000",
-        ws: true, // Kích hoạt proxy cho WebSocket
+      // Luồng cho Dashboard và các tab khác
+      "/ws/stream": {
+        target: "ws://bridge:8000",
+        ws: true,
+      },
+      // Luồng độc lập dành riêng cho Clustering
+      "/ws/clusters": {
+        target: "ws://streaming-server:8000",
+        ws: true,
       },
     },
   },

@@ -1,6 +1,5 @@
-import standardRulesData from '../../imports/association.json';
-import superRulesData from '../../imports/associationsuper.json';
-
+import standardRulesData from "../../data/association_rules.json";
+import superRulesData from "../../data/association_rules_super.json";
 // Extract all unique products from association rules
 export const extractAllProducts = () => {
   const productsSet = new Set<string>();

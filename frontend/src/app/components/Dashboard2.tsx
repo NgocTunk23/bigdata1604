@@ -1,115 +1,100 @@
-import { useState, useEffect } from "react";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { useState, useEffect } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label } from 'recharts';
 
-interface Dashboard2Props {
-  // trendData có thể lấy từ prop hoặc fetch từ /api/eda-data
-  trendData?: any[];
-}
+// Khởi tạo mảng các thứ ĐẦY ĐỦ 7 ngày trong tuần
+const initWeekdayData = () => [
+  { day: 'Thứ 2', orders: 0 }, 
+  { day: 'Thứ 3', orders: 0 },
+  { day: 'Thứ 4', orders: 0 },
+  { day: 'Thứ 5', orders: 0 }, 
+  { day: 'Thứ 6', orders: 0 }, 
+  { day: 'Thứ 7', orders: 0 }, 
+  { day: 'Chủ nhật', orders: 0 }
+];
 
-export function Dashboard2({ trendData = [] }: Dashboard2Props) {
-  const [edaData, setEdaData] = useState<any>(null);
+export function Dashboard2() {
+  const [trendData, setTrendData] = useState<{ day: number; orders: number }[]>([]);
+  const [weekdayData, setWeekdayData] = useState(initWeekdayData());
 
   useEffect(() => {
-    // Gọi API lấy dữ liệu EDA tĩnh từ backend
-    fetch("/api/eda-data")
-      .then((res) => res.json())
-      .then((data) => setEdaData(data));
-  }, []);
+    const ws = new WebSocket('ws://localhost:8001/ws/dashboard');
 
-  const getHeatmapColor = (value: number) => {
-    if (value < 30) return "#FFEDD5";
-    if (value < 60) return "#FED7AA";
-    if (value < 90) return "#FB923C";
-    if (value < 120) return "#F97316";
-    return "#EA580C";
-  };
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      const recordDateStr = data.Date;
+      if (!recordDateStr) return;
+
+      const dateObj = new Date(recordDateStr);
+      const dayOfMonth = dateObj.getDate();
+      
+      // Lấy thứ trong tuần (0: Chủ nhật, 1: T2, 2: T3...)
+      const dayIdx = dateObj.getDay();
+      // Map về Index của mảng initWeekdayData (Chủ nhật đưa về cuối mảng - index 6)
+      const mappedIdx = dayIdx === 0 ? 6 : dayIdx - 1;
+
+      // 1. Cập nhật Trend Data (Sắp xếp tăng dần theo ngày 1->31)
+      setTrendData(prev => {
+        const existing = prev.find(p => p.day === dayOfMonth);
+        let updated;
+        if (existing) {
+          updated = prev.map(p => p.day === dayOfMonth ? { ...p, orders: p.orders + 1 } : p);
+        } else {
+          updated = [...prev, { day: dayOfMonth, orders: 1 }];
+        }
+        return updated.sort((a, b) => a.day - b.day).slice(-30); // Giữ 30 ngày gần nhất
+      });
+
+      // 2. Cập nhật Weekday Data (Đã sửa lỗi mất Thứ 3)
+      setWeekdayData(prev => {
+        const updated = [...prev];
+        updated[mappedIdx].orders += 1;
+        return updated;
+      });
+    };
+
+    return () => ws.close();
+  }, []);
 
   return (
     <div className="space-y-6">
-      {/* Xu hướng đơn hàng - Dữ liệu thực từ Prop */}
+      {/* Xu hướng đơn hàng theo ngày */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <h3 className="text-slate-900 font-semibold text-xl">
-              Xu hướng đơn hàng theo ngày
-            </h3>
-            <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold uppercase tracking-wider">
-              Historical Analysis
-            </span>
-          </div>
-        </div>
-        <div className="h-[280px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={trendData.length > 0 ? trendData : []}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-              <XAxis dataKey="day" tick={{ fill: "#64748B", fontSize: 12 }} />
-              <YAxis tick={{ fill: "#64748B", fontSize: 12 }} />
-              <Tooltip contentStyle={{ borderRadius: "0.75rem" }} />
-              <Bar dataKey="orders" fill="#93C5FD" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <h3 className="text-slate-900 text-xl font-semibold mb-6 flex items-center gap-2">Xu hướng mua sắm theo ngày trong tháng
+            <span className="bg-red-50 text-red-600 text-xs px-2 py-1 rounded-full animate-pulse border border-red-200">LIVE</span>
+        </h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={trendData} margin={{ bottom: 20, left: 10 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+            <XAxis dataKey="day" tick={{ fill: '#64748B' }}>
+              <Label value="Ngày trong tháng" offset={-10} position="insideBottom" fill="#64748B" />
+            </XAxis>
+            <YAxis tick={{ fill: '#64748B' }}>
+              <Label value="Số đơn hàng" angle={-90} position="insideLeft" fill="#64748B" />
+            </YAxis>
+            <Tooltip />
+            <Bar dataKey="orders" fill="#93C5FD" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
-        {/* Mua sắm theo giờ */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <h3 className="text-slate-900 font-semibold text-lg mb-6">
-            Mua sắm theo giờ trong ngày
-          </h3>
-          <div className="h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={[]}>
-                {" "}
-                {/* Gắn hourlyData ở đây */}
-                <defs>
-                  <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="hour" />
-                <YAxis />
-                <Tooltip />
-                <Area
-                  type="monotone"
-                  dataKey="count"
-                  stroke="#8B5CF6"
-                  fill="url(#colorHours)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Mua sắm theo thứ */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-          <h3 className="text-slate-900 font-semibold text-lg mb-6">
-            Mua sắm theo thứ trong tuần
-          </h3>
-          <div className="h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={[]}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="orders" fill="#86EFAC" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+      {/* Mua sắm theo thứ */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+        <h3 className="text-slate-900 text-xl font-semibold mb-6 flex items-center gap-2">Xu hướng mua sắm theo thứ trong tuần
+            <span className="bg-red-50 text-red-600 text-xs px-2 py-1 rounded-full animate-pulse border border-red-200">LIVE</span>
+        </h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={weekdayData} margin={{ bottom: 20, left: 10 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+            <XAxis dataKey="day" tick={{ fill: '#64748B' }}>
+              <Label value="Thứ trong tuần" offset={-10} position="insideBottom" fill="#64748B" />
+            </XAxis>
+            <YAxis tick={{ fill: '#64748B' }}>
+              <Label value="Số đơn hàng" angle={-90} position="insideLeft" fill="#64748B" />
+            </YAxis>
+            <Tooltip />
+            <Bar dataKey="orders" fill="#86EFAC" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

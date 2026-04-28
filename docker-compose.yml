@@ -1,55 +1,72 @@
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
-    ports:
-      - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
   kafka:
     image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      - zookeeper
     ports:
-      - "9092:9092"
+      - "29092:29092" # Cổng để máy thật (localhost) truy cập
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      # KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      # KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      # Cấu hình Listeners: tách biệt cổng 9092 và 29092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    depends_on:
-      - zookeeper
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  spark-engine:
-    build: .
-    volumes:
-      - .:/app
-    # Spark sẽ gọi Kafka qua tên service 'kafka'
-    command: spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 /app/backend/spark_engine.py
-    depends_on:
-      - kafka
 
-  streamlit-web:
-    build: .
+
+  streaming-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    command: python ws_server.py
     ports:
-      - "8501:8501"
-    volumes:
-      - .:/app
-    command: streamlit run /app/backend/app.py
+      - "8001:8000"
     depends_on:
-      - kafka
-
-  data-simulator:
-    build: .
-    volumes:
-      - .:/app
+      kafka:
+        condition: service_healthy
     environment:
-      - PYTHONPATH=/app
-    # Lệnh chạy file simulator
-    command: python /app/backend/simulator.py
-    # Bắt buộc phải đợi Kafka sẵn sàng mới được bắn dữ liệu
+      KAFKA_BROKER: kafka:9092
+      TOPIC_NAME: customer_clusters
+    
+  frontend-react:
+    image: node:20-slim
+    working_dir: /app/frontend
+    ports:
+      - "3001:3001"
+    volumes:
+      - .:/app
+    # Lệnh cài đặt và chạy dev server
+    command: >
+      sh -c "npm install && npm run dev -- --port 3001 --host"
+  
+    
+  merged-producer:
+    build: 
+      context: .
+      dockerfile: Dockerfile.backend
+    command: python merged_producer.py
+    ports:
+      - "8003:8003" # Ánh xạ cổng API tốc độ ra máy ngoài
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./data/results:/app/data/results
+    environment:
+      KAFKA_BROKER: kafka:9092
+      TOPIC_NAME: customer_clusters
+      DATA_SOURCE: /app/data/results/clustered_users.jsonl
