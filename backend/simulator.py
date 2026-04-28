@@ -53,7 +53,7 @@ def run_simulator():
             print(f"--- ⚠️ Lỗi khi gửi dữ liệu lên Kafka: {e} ---")
         
         # Stream 1 dòng mỗi giây để dashboard có thể nhận real-time
-        time.sleep(1)
+        time.sleep(0.1)
 
 if __name__ == "__main__":
     run_simulator()
