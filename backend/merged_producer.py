@@ -82,7 +82,7 @@ def run_transaction_stream():
                 producer.send('live_transactions', value=row.to_dict())
             except Exception: pass
             # Giả định: giao dịch nhiều hơn phân cụm nên cho luồng này bắn nhanh hơn tỷ lệ 10 lần
-            time.sleep(stream_state["delay"] / 10.0)
+            time.sleep(stream_state["delay"])
 
 # Chạy ngầm 2 luồng phát khi server API khởi động
 @app.on_event("startup")

@@ -99,40 +99,59 @@ export function AssociationRulesTab() {
 
   // --- LOGIC STREAMING QUA WEBSOCKET ---
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8000/ws/dashboard');
+    const ws = new WebSocket('ws://localhost:8001/ws/dashboard');
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         
-        // Bỏ qua nếu giao dịch thiếu thông tin
-        if (!data.CustomerNo || !data.ProductName) return;
+        // 1. CẬP NHẬT ĐIỀU KIỆN: Dùng Basket thay vì ProductName
+        if (!data.CustomerNo || !data.Basket) return;
 
-        const currentItem = data.ProductName;
+        // 2. XỬ LÝ CỘT BASKET
+        let basketItems = [];
+        if (Array.isArray(data.Basket)) {
+            basketItems = data.Basket;
+        } else if (typeof data.Basket === 'string') {
+            // Phòng trường hợp Basket bị Pandas lưu dưới dạng chuỗi "['Item1', 'Item2']"
+            try {
+                basketItems = JSON.parse(data.Basket.replace(/'/g, '"'));
+            } catch {
+                // Hoặc chuỗi cách nhau dấu phẩy "Item1, Item2"
+                basketItems = data.Basket.split(',').map((item: string) => item.trim());
+            }
+        }
 
-        // Tra cứu vào file luật Super để lấy gợi ý tốt nhất
+        if (basketItems.length === 0) return;
+
+        // 3. TRA CỨU LUẬT (Dựa trên nhiều sản phẩm trong giỏ)
         const matchedRules = superRulesData.filter((rule: any) => {
           if (Array.isArray(rule.antecedent)) {
-            return rule.antecedent.includes(currentItem);
+            // Nếu luật yêu cầu [A, B], kiểm tra xem giỏ hàng có chứa các món đó không
+            // Dùng some() để gợi ý nếu giỏ có MỘT TRONG CÁC món của antecedent
+            return rule.antecedent.some((item: string) => basketItems.includes(item));
           }
-          return rule.antecedent === currentItem;
+          return basketItems.includes(rule.antecedent);
         });
 
         let recommendedProducts: string[] = [];
         if (matchedRules.length > 0) {
           const allConsequents = matchedRules.flatMap((r: any) => r.consequent);
-          recommendedProducts = Array.from(new Set(allConsequents));
+          // Lọc trùng lặp & LOẠI BỎ những sản phẩm khách đã bỏ vào giỏ (Basket) rồi
+          recommendedProducts = Array.from(new Set(allConsequents))
+                                     .filter(rec => !basketItems.includes(rec as string));
         }
 
-        // Cập nhật state, đưa dòng mới nhất lên đầu (chỉ giữ 15 dòng để không lag)
+        // 4. CẬP NHẬT STATE
         setLiveStream((prev) => {
           const newRecord: StreamRecord = {
             TransactionNo: data.TransactionNo,
             CustomerNo: data.CustomerNo,
-            CartItem: currentItem,
-            Recommendations: recommendedProducts,
+            // Ghép mảng thành chuỗi để hiển thị đẹp trên UI
+            CartItem: basketItems.join(", "), 
+            Recommendations: recommendedProducts as string[],
           };
-          return [newRecord, ...prev].slice(0, 15);
+          return [newRecord, ...prev].slice(0, 15); // Chỉ giữ 15 dòng mới nhất
         });
       } catch (err) {
         console.error("Lỗi parse dữ liệu WebSocket:", err);
