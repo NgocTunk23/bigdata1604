@@ -10,11 +10,10 @@ services:
     depends_on:
       - zookeeper
     ports:
-      - "29092:29092" # Cổng để máy thật (localhost) truy cập
+      - "29092:29092" 
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      # Cấu hình Listeners: tách biệt cổng 9092 và 29092
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
@@ -26,8 +25,42 @@ services:
       timeout: 5s
       retries: 5
 
+  # 1. Server bắn dữ liệu từ Parquet vào luồng Kafka
+  merged-producer:
+    build: 
+      context: .
+      dockerfile: Dockerfile.backend
+    command: python merged_producer.py
+    ports:
+      - "8003:8003" 
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./data/results:/app/data/results
+    environment:
+      KAFKA_BROKER: kafka:9092
+      TOPIC_NAME: customer_clusters
+      DATA_SOURCE: /app/data/results/clustered_users.jsonl
 
+  # 2. [MỚI THÊM] Tiến trình Spark đọc luồng, Join tĩnh, và đẩy kết quả ra Kafka
+  # 2. Tiến trình Spark đọc luồng, Join tĩnh, và đẩy kết quả ra Kafka
+  spark-streaming:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    command: python spark_streaming.py
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./data/results:/app/data/results
+    environment:
+      KAFKA_BROKER: kafka:9092
+      # Đổi tên biến thành _JAVA_OPTIONS (bắt buộc mọi tiến trình Java phải nhận)
+      _JAVA_OPTIONS: "--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/sun.nio.cs=ALL-UNNAMED --add-opens=java.base/sun.security.action=ALL-UNNAMED --add-opens=java.base/sun.util.calendar=ALL-UNNAMED --add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED"
 
+  # 3. Server WebSocket đọc kết quả từ Spark và đẩy ra React
   streaming-server:
     build:
       context: .
@@ -42,31 +75,15 @@ services:
       KAFKA_BROKER: kafka:9092
       TOPIC_NAME: customer_clusters
     
+  # 4. Giao diện người dùng
   frontend-react:
     image: node:20-slim
     working_dir: /app/frontend
     ports:
       - "3001:3001"
+    depends_on:
+      - streaming-server  # Thêm dòng này để đợi backend
     volumes:
       - .:/app
-    # Lệnh cài đặt và chạy dev server
     command: >
       sh -c "npm install && npm run dev -- --port 3001 --host"
-  
-    
-  merged-producer:
-    build: 
-      context: .
-      dockerfile: Dockerfile.backend
-    command: python merged_producer.py
-    ports:
-      - "8003:8003" # Ánh xạ cổng API tốc độ ra máy ngoài
-    depends_on:
-      kafka:
-        condition: service_healthy
-    volumes:
-      - ./data/results:/app/data/results
-    environment:
-      KAFKA_BROKER: kafka:9092
-      TOPIC_NAME: customer_clusters
-      DATA_SOURCE: /app/data/results/clustered_users.jsonl
