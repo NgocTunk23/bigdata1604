@@ -36,22 +36,19 @@ def get_producer():
         except NoBrokersAvailable:
             print("Kafka not ready, retrying in 5 seconds...")
             time.sleep(5)
-
 def run_producer():
     producer = get_producer()
     
-    # 1. Chờ đợi cho đến khi Spark ghi xong (có file _SUCCESS)
-    success_file = os.path.join(DATA_SOURCE, '_SUCCESS')
-    print(f"Waiting for Spark data completion at {DATA_SOURCE}...")
-    
-    while not os.path.exists(success_file):
+    # 1. SỬA LẠI: Chỉ cần chờ file jsonl được tạo ra (Không tìm _SUCCESS bên trong file nữa)
+    print(f"Waiting for data file at {DATA_SOURCE}...")
+    while not os.path.exists(DATA_SOURCE):
         time.sleep(5)
         
-    print("Spark write complete! Loading JSONL data...")
+    print("Data file found! Loading JSONL data...")
 
     # 2. Đọc dữ liệu từ file/thư mục JSON
     try:
-        # lines=True là bắt buộc đối với định dạng JSON xuất ra từ Spark/Hadoop
+        # lines=True là bắt buộc đối với định dạng JSONL
         df = pd.read_json(DATA_SOURCE, lines=True)
         print(f"Loaded {len(df)} rows from source.")
     except Exception as e:
@@ -64,8 +61,11 @@ def run_producer():
         for _, row in df.iterrows():
             data = row.to_dict()
             producer.send(TOPIC_NAME, value=data)
-            print(f"Sent: {data.get('CustomerNo', 'Unknown')}")
-            time.sleep(1) # Giả lập stream mỗi giây 1 bản ghi
+            print(f"Sent CustomerNo: {data.get('CustomerNo', 'Unknown')} to Kafka")
+            
+            # SỬA LẠI: Bắt buộc phải có time.sleep() để giả lập luồng thời gian thực
+            # và tránh làm sập (crash) trình duyệt Frontend
+            time.sleep(1)
 
 if __name__ == "__main__":
     run_producer()
