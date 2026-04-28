@@ -1,15 +1,21 @@
 FROM python:3.10-slim
 
+# 1. Cài đặt Java (Bắt buộc để chạy PySpark) và công cụ cần thiết
+RUN apt-get update && \
+    apt-get install -y default-jre procps netcat-traditional && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Cài đặt các thư viện cần thiết
+# 2. Cài đặt các thư viện Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source code backend
+# 3. Copy source code backend
 COPY ./backend .
 
-# Khai báo biến môi trường mặc định
+# Khai báo biến môi trường
 ENV PYTHONUNBUFFERED=1
+ENV JAVA_HOME=/usr/lib/jvm/default-java
 
 # Script khởi chạy sẽ được chỉ định qua 'command' trong docker-compose
