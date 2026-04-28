@@ -15,6 +15,7 @@ function figmaAssetResolver() {
   };
 }
 
+// frontend/vite.config.ts
 export default defineConfig({
   plugins: [figmaAssetResolver(), react(), tailwindcss()],
   resolve: {
@@ -25,15 +26,13 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://bridge:8000",
+        target: "http://streaming-server:8000", // Đổi từ bridge -> streaming-server
         changeOrigin: true,
       },
-      // Luồng cho Dashboard và các tab khác
       "/ws/stream": {
-        target: "ws://bridge:8000",
+        target: "ws://streaming-server:8000",   // Đổi từ bridge -> streaming-server
         ws: true,
       },
-      // Luồng độc lập dành riêng cho Clustering
       "/ws/clusters": {
         target: "ws://streaming-server:8000",
         ws: true,

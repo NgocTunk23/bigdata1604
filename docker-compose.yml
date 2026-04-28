@@ -44,6 +44,7 @@ services:
       DATA_SOURCE: /app/data/results/clustered_users.jsonl
 
   # 2. [MỚI THÊM] Tiến trình Spark đọc luồng, Join tĩnh, và đẩy kết quả ra Kafka
+  # 2. Tiến trình Spark đọc luồng, Join tĩnh, và đẩy kết quả ra Kafka
   spark-streaming:
     build:
       context: .
@@ -56,8 +57,8 @@ services:
       - ./data/results:/app/data/results
     environment:
       KAFKA_BROKER: kafka:9092
-      # THÊM DÒNG NÀY ĐỂ VƯỢT QUA BẢO MẬT CỦA JAVA 17
-      JDK_JAVA_OPTIONS: "--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/sun.nio.cs=ALL-UNNAMED --add-opens=java.base/sun.security.action=ALL-UNNAMED --add-opens=java.base/sun.util.calendar=ALL-UNNAMED --add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED"
+      # Đổi tên biến thành _JAVA_OPTIONS (bắt buộc mọi tiến trình Java phải nhận)
+      _JAVA_OPTIONS: "--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.net=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED --add-opens=java.base/sun.nio.cs=ALL-UNNAMED --add-opens=java.base/sun.security.action=ALL-UNNAMED --add-opens=java.base/sun.util.calendar=ALL-UNNAMED --add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED"
 
   # 3. Server WebSocket đọc kết quả từ Spark và đẩy ra React
   streaming-server:
@@ -80,6 +81,8 @@ services:
     working_dir: /app/frontend
     ports:
       - "3001:3001"
+    depends_on:
+      - streaming-server  # Thêm dòng này để đợi backend
     volumes:
       - .:/app
     command: >
