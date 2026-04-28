@@ -81,3 +81,16 @@ services:
         condition: service_healthy
     environment:
       KAFKA_BROKER: kafka:9092
+    
+  simulator:
+    build: 
+      context: .
+      dockerfile: Dockerfile.backend
+    command: python simulator.py
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./data/results:/app/data/results
+    environment:
+      KAFKA_BROKER: kafka:9092
