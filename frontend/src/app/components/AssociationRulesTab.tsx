@@ -229,7 +229,7 @@ export function AssociationRulesTab() {
             </h2>
           </div>
           <p className="text-blue-700 relative z-10" style={{ fontSize: "0.875rem" }}>
-            Giám sát trực tiếp giỏ hàng đang giao dịch và tra cứu tập luật để gợi ý sản phẩm ngay lập tức.
+            Giám sát trực tiếp giỏ hàng đang giao dịch và gợi ý sản phẩm bán kèm theo thời gian thực
           </p>
         </div>
 
@@ -238,10 +238,10 @@ export function AssociationRulesTab() {
             <table className="w-full text-left">
               <thead className="bg-blue-50/80 border-b border-blue-200 sticky top-0 z-10 backdrop-blur-sm">
                 <tr>
-                  <th className="px-6 py-4 text-blue-800" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Mã Giao dịch</th>
-                  <th className="px-6 py-4 text-blue-800" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Mã Khách hàng</th>
-                  <th className="px-6 py-4 text-blue-800" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Sản phẩm trong giỏ</th>
-                  <th className="px-6 py-4 text-blue-800 bg-blue-100/50 border-l border-blue-200" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Sản phẩm gợi ý (Tra cứu Real-time)</th>
+                  <th className="px-6 py-4 text-blue-800 whitespace-nowrap" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Mã GD</th>
+                  <th className="px-6 py-4 text-blue-800 whitespace-nowrap" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Mã KH</th>
+                  <th className="px-6 py-4 text-blue-800 whitespace-nowrap" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Sản phẩm trong giỏ hàng</th>
+                  <th className="px-6 py-4 text-blue-800 bg-blue-100/50 border-l border-blue-200 whitespace-nowrap" style={{ fontSize: "0.875rem", fontWeight: 600 }}>Sản phẩm gợi ý</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-blue-50">

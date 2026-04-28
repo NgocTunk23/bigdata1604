@@ -135,7 +135,7 @@ export function Dashboard1() {
             </div>
             <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-md">Live</span>
           </div>
-          <p className="text-sm font-medium text-slate-500">Tổng đơn hàng</p>
+          <p className="text-sm font-medium text-slate-500">Tổng số lượng Đơn hàng</p>
           <h3 className="text-2xl font-bold text-slate-800">{kpis.totalOrders.toLocaleString()}</h3>
         </div>
 
@@ -147,7 +147,7 @@ export function Dashboard1() {
             </div>
             <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">Live</span>
           </div>
-          <p className="text-sm font-medium text-slate-500">Doanh thu (USD)</p>
+          <p className="text-sm font-medium text-slate-500">Doanh thu (Bảng Anh)</p>
           <h3 className="text-2xl font-bold text-slate-800">
             ${kpis.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </h3>
@@ -159,8 +159,9 @@ export function Dashboard1() {
             <div className="p-2 bg-purple-50 rounded-lg">
               <Users className="size-6 text-purple-600" />
             </div>
+            <span className="text-xs font-medium text-purple-600 bg-emerald-50 px-2 py-1 rounded-md">Live</span>
           </div>
-          <p className="text-sm font-medium text-slate-500">Khách hàng</p>
+          <p className="text-sm font-medium text-slate-500">Tổng số lượng Khách hàng</p>
           <h3 className="text-2xl font-bold text-slate-800">{kpis.customers.toLocaleString()}</h3>
         </div>
 
@@ -170,8 +171,9 @@ export function Dashboard1() {
             <div className="p-2 bg-orange-50 rounded-lg">
               <TrendingUp className="size-6 text-orange-600" />
             </div>
+            <span className="text-xs font-medium text-orange-600 bg-emerald-50 px-2 py-1 rounded-md">Live</span>
           </div>
-          <p className="text-sm font-medium text-slate-500">Giá trị TB đơn</p>
+          <p className="text-sm font-medium text-slate-500">Giá trị Đơn hàng trung bình</p>
           <h3 className="text-2xl font-bold text-slate-800">
             ${kpis.aov.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </h3>
@@ -183,8 +185,9 @@ export function Dashboard1() {
             <div className="p-2 bg-rose-50 rounded-lg">
               <Package className="size-6 text-rose-600" />
             </div>
+            <span className="text-xs font-medium text-rose-600 bg-emerald-50 px-2 py-1 rounded-md">Live</span>
           </div>
-          <p className="text-sm font-medium text-slate-500">Số lượng SP đã bán</p>
+          <p className="text-sm font-medium text-slate-500">Số lượng Sản phẩm đã bán</p>
           <h3 className="text-2xl font-bold text-slate-800">{kpis.products.toLocaleString()}</h3>
         </div>
       </div>
@@ -195,18 +198,24 @@ export function Dashboard1() {
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
             <Package className="size-5 text-blue-500" />
-            Top 10 Sản phẩm bán chạy nhất
+            Top 10 Sản phẩm bán chạy
           </h3>
           <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={topProducts} layout="vertical" margin={{ left: 10, right: 30 }}>
+            <BarChart data={topProducts} layout="vertical" margin={{ left: 40, right: 40, bottom: 15 }}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-              <XAxis type="number" hide />
+              <XAxis 
+                type="number" 
+                tick={{ fill: '#64748B', fontSize: 12 }}
+                label={{ value: 'Số lượng bán ra', position: 'insideBottom', offset: -10, fill: '#64748B', fontSize: 13, fontWeight: 500 }} 
+              />
               <YAxis 
                 type="category" 
                 dataKey="name" 
                 tick={{ fill: '#64748B', fontSize: 12 }} 
                 width={150}
+                label={{ value: 'Sản phẩm', angle: -90, position: 'insideLeft', offset: -30, fill: '#64748B', fontSize: 13, fontWeight: 500 }}
               />
+                      
               <Tooltip 
                 cursor={{ fill: '#f8fafc' }}
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
@@ -224,13 +233,20 @@ export function Dashboard1() {
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
             <TrendingUp className="size-5 text-emerald-500" />
-            Biến động doanh thu theo thời gian
+            Dữ liệu Giao dịch theo thời gian thực
           </h3>
           <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={streamData}>
+            <LineChart data={streamData} margin={{ left: 10, right: 40, bottom: 15 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="time" tick={{ fontSize: 12, fill: '#64748B' }} />
-              <YAxis tick={{ fontSize: 12, fill: '#64748B' }} />
+              <XAxis 
+                dataKey="time" 
+                tick={{ fontSize: 12, fill: '#64748B' }}
+                label={{ value: 'Thời gian', position: 'insideBottom', offset: -10, fill: '#64748B', fontSize: 13 }}
+              />
+              <YAxis 
+                tick={{ fontSize: 12, fill: '#64748B' }}
+                label={{ value: 'Giá trị Đơn hàng (Bảng Anh)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' }, fill: '#64748B', fontSize: 13 }}
+              />
               <Tooltip 
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
               />
